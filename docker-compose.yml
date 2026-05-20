@@ -1,0 +1,59 @@
+services:
+  
+ frontend:
+    build:
+      context: ./client
+    container_name: InvoiceHub-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - InvoiceHub-app
+    restart: unless-stopped
+
+
+
+ backend:
+    build:
+      context: ./server
+    container_name: InvoiceHub-backend
+    ports:
+      - "5219:5219"
+    
+    environment:
+      - PORT=5219
+      - MONGO_URI=mongodb://mongodb:27017/InvoiceHub
+    depends_on:
+      - mongodb
+    networks:
+      - InvoiceHub-app
+    restart: unless-stopped
+ 
+
+
+
+
+
+ mongodb:
+    image: mongo:7-jammy
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - InvoiceHub-data:/data/db 
+    networks:
+      - InvoiceHub-app
+   
+    restart: unless-stopped
+
+
+networks:
+  InvoiceHub-app:
+
+volumes:
+ InvoiceHub-data:
+
+
+
+    

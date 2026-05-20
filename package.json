@@ -1,0 +1,22 @@
+{
+  "name": "invoice-app",
+  "version": "1.0.0",
+  "description": "Production-grade invoice management system",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm start",
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm start"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "nodemailer": "^8.0.7"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.1.0"
+  }
+}
