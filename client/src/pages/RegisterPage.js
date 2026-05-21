@@ -102,23 +102,23 @@ const RegisterPage = () => {
       <div className="auth-grid">
         <section className="auth-panel">
           <span className="auth-kicker">Create Workspace</span>
-          <h1 className="auth-title">Build your invoice  in one minute.</h1>
+          <h1 className="auth-title">Build Professional Invoices Easily</h1>
           <p className="auth-subtitle">
-            Register once, set your business profile, and start producing clear, professional invoices instantly.
+           Manage your business invoices quickly with a simple and secure invoicing platform.
           </p>
 
           <div className="auth-metrics">
             <div className="auth-metric">
-              <strong>Secure auth</strong>
-              <span>Protected business data</span>
+              <strong>Secure & Simple</strong>
+              <span>Built for smooth business invoicing.</span>
             </div>
             <div className="auth-metric">
-              <strong>Smart totals</strong>
-              <span>Tax and discount support</span>
+              <strong>Professional Experience</strong>
+              <span>Manage your work with a clean and modern experience.</span>
             </div>
             <div className="auth-metric">
-              <strong>Ready to send</strong>
-              <span>Share and export quickly</span>
+              <strong>Easy Sharing</strong>
+              <span>Download and send invoices instantly.</span>
             </div>
           </div>
         </section>
@@ -131,22 +131,22 @@ const RegisterPage = () => {
             <Alert message={globalError} type="error" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {field("name", "Full Name", "text", "Jane Doe")}
-              {field("businessName", "Business Name", "text", "Acme Ltd.")}
+              {field("name", "Full Name", "text", "Enter your full name")}
+              {field("businessName", "Business Name", "text", "Enter your business name.")}
             </div>
 
             {field("email", "Email Address", "email", "you@business.com")}
-            {field("password", "Password", "password", "Min. 8 characters")}
+            {field("password", "Password", "password", "Create a strong password")}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {field("phone", "Phone", "tel", "+91 98765 43210")}
+              {field("phone", "Phone", "tel", "Enter your phone number")}
               <div>
                 <label className="label">GSTIN (optional)</label>
                 <input
                   type="text"
                   name="gstin"
                   className={`input font-mono text-xs tracking-wider ${errors.gstin ? "border-[var(--danger)]" : ""}`}
-                  placeholder="22AAAAA0000A1Z5"
+                  placeholder="GSTIN (Optional)"
                   value={form.gstin}
                   onChange={handleChange}
                   disabled={loading}
@@ -164,7 +164,7 @@ const RegisterPage = () => {
               <textarea
                 name="address"
                 className={`input resize-none h-20 ${errors.address ? "border-[var(--danger)]" : ""}`}
-                placeholder="123 Main St, City, State, 400001"
+                placeholder="Enter your business address"
                 value={form.address}
                 onChange={handleChange}
                 disabled={loading}

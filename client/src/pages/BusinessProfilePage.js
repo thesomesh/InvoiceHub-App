@@ -96,12 +96,33 @@ const BusinessProfilePage = () => {
       <form onSubmit={handleSubmit} className="card p-6 space-y-5">
         <Alert message={error} type="error" />
         <Alert message={success} type="success" />
+<div>
+  <label className="label">Business Owner Name</label>
+  <input
+    type="text"
+    className="input"
+    placeholder="Enter your full name"
+    value={user?.name || ""}
+    disabled={loading}
+  />
+</div>
+       <div>
+  <label className="label">
+    Business Name
+    
+  </label>
 
-        <div>
-          <label className="label">Business Name</label>
-          <input type="text" className="input" value={user?.businessName || ""} readOnly disabled />
-        </div>
-
+  <input
+    type="text"
+    className="input"
+    placeholder="Enter business name"
+    value={user?.businessName || ""}
+    onChange={(e) =>
+      updateProfile({ businessName: e.target.value })
+    }
+    disabled={loading}
+  />
+</div>
         <div>
           <label className="label">Mobile Number *</label>
           <input

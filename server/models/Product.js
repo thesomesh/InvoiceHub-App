@@ -63,12 +63,6 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // TOTAL SOLD QUANTITY
-    soldQuantity: {
-      type: Number,
-      default: 0,
-    },
-
     // TOTAL SALES AMOUNT
     totalSales: {
       type: Number,

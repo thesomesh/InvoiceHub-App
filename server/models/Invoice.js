@@ -1,24 +1,32 @@
 const mongoose =
   require("mongoose");
 
+// ========================================
+// ITEM SCHEMA
+// ========================================
+
 const itemSchema =
   new mongoose.Schema(
     {
       name: {
         type: String,
+
         required: [
           true,
           "Item name is required",
         ],
+
         trim: true,
       },
 
       qty: {
         type: Number,
+
         required: [
           true,
           "Quantity is required",
         ],
+
         min: [
           1,
           "Quantity must be at least 1",
@@ -27,10 +35,12 @@ const itemSchema =
 
       price: {
         type: Number,
+
         required: [
           true,
           "Price is required",
         ],
+
         min: [
           0,
           "Price cannot be negative",
@@ -39,7 +49,9 @@ const itemSchema =
 
       total: {
         type: Number,
+
         required: true,
+
         min: [
           0,
           "Item total cannot be negative",
@@ -47,12 +59,22 @@ const itemSchema =
       },
     },
 
-    { _id: false }
+    {
+      _id: false,
+    }
   );
+
+// ========================================
+// INVOICE SCHEMA
+// ========================================
 
 const invoiceSchema =
   new mongoose.Schema(
     {
+      // ========================================
+      // USER
+      // ========================================
+
       userId: {
         type:
           mongoose.Schema.Types
@@ -65,12 +87,18 @@ const invoiceSchema =
         index: true,
       },
 
+      // ========================================
+      // INVOICE INFO
+      // ========================================
+
       invoiceNumber: {
         type: String,
 
         required: true,
 
         unique: true,
+
+        trim: true,
       },
 
       date: {
@@ -89,6 +117,10 @@ const invoiceSchema =
 
         default: null,
       },
+
+      // ========================================
+      // CUSTOMER
+      // ========================================
 
       customer: {
         name: {
@@ -132,6 +164,10 @@ const invoiceSchema =
         },
       },
 
+      // ========================================
+      // ITEMS
+      // ========================================
+
       items: {
         type: [itemSchema],
 
@@ -145,15 +181,18 @@ const invoiceSchema =
         },
       },
 
+      // ========================================
+      // FINANCIALS
+      // ========================================
+
       subtotal: {
         type: Number,
 
         required: true,
 
-        min: [
-          0,
-          "Subtotal cannot be negative",
-        ],
+        min: 0,
+
+        default: 0,
       },
 
       taxRate: {
@@ -161,15 +200,9 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Tax rate cannot be negative",
-        ],
+        min: 0,
 
-        max: [
-          100,
-          "Tax rate cannot exceed 100%",
-        ],
+        max: 100,
       },
 
       taxPercentage: {
@@ -177,15 +210,9 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Tax percentage cannot be negative",
-        ],
+        min: 0,
 
-        max: [
-          100,
-          "Tax percentage cannot exceed 100%",
-        ],
+        max: 100,
       },
 
       taxAmount: {
@@ -193,10 +220,7 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Tax amount cannot be negative",
-        ],
+        min: 0,
       },
 
       discountRate: {
@@ -204,15 +228,9 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Discount rate cannot be negative",
-        ],
+        min: 0,
 
-        max: [
-          100,
-          "Discount rate cannot exceed 100%",
-        ],
+        max: 100,
       },
 
       discountPercentage: {
@@ -220,15 +238,9 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Discount percentage cannot be negative",
-        ],
+        min: 0,
 
-        max: [
-          100,
-          "Discount percentage cannot exceed 100%",
-        ],
+        max: 100,
       },
 
       discountAmount: {
@@ -236,10 +248,7 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Discount amount cannot be negative",
-        ],
+        min: 0,
       },
 
       total: {
@@ -247,11 +256,14 @@ const invoiceSchema =
 
         required: true,
 
-        min: [
-          0,
-          "Total cannot be negative",
-        ],
+        min: 0,
+
+        default: 0,
       },
+
+      // ========================================
+      // NOTES
+      // ========================================
 
       notes: {
         type: String,
@@ -293,7 +305,7 @@ const invoiceSchema =
           "Cheque",
           "Other",
           "Not Paid Yet",
-           "Refunded",
+          "Refunded",
         ],
 
         default:
@@ -301,7 +313,7 @@ const invoiceSchema =
       },
 
       // ========================================
-      // AMOUNT PAID
+      // PAYMENT TRACKING
       // ========================================
 
       amountPaid: {
@@ -309,25 +321,31 @@ const invoiceSchema =
 
         default: 0,
 
-        min: [
-          0,
-          "Amount paid cannot be negative",
-        ],
+        min: 0,
       },
-
-      // ========================================
-      // DUE AMOUNT
-      // ========================================
 
       dueAmount: {
         type: Number,
 
         default: 0,
 
-        min: [
-          0,
-          "Due amount cannot be negative",
-        ],
+        min: 0,
+      },
+
+      // ========================================
+      // OPTIONAL TRACKING
+      // ========================================
+
+      paidAt: {
+        type: Date,
+
+        default: null,
+      },
+
+      cancelledAt: {
+        type: Date,
+
+        default: null,
       },
     },
 
@@ -335,6 +353,80 @@ const invoiceSchema =
       timestamps: true,
     }
   );
+
+// ========================================
+// AUTO PAYMENT LOGIC
+// ========================================
+
+invoiceSchema.pre(
+  "save",
+  function (next) {
+    // PAID
+
+    if (
+      this.status === "paid"
+    ) {
+      this.amountPaid =
+        this.total;
+
+      this.dueAmount = 0;
+
+      this.paidAt =
+        new Date();
+    }
+
+    // PENDING
+
+    if (
+      this.status ===
+      "pending"
+    ) {
+      this.amountPaid = 0;
+
+      this.dueAmount =
+        this.total;
+
+      this.paymentMethod =
+        "Not Paid Yet";
+    }
+
+    // PARTIAL
+
+    if (
+      this.status ===
+      "partial"
+    ) {
+      this.dueAmount =
+        this.total -
+        this.amountPaid;
+
+      if (
+        this.dueAmount < 0
+      ) {
+        this.dueAmount = 0;
+      }
+    }
+
+    // CANCELLED
+
+    if (
+      this.status ===
+      "cancelled"
+    ) {
+      this.cancelledAt =
+        new Date();
+
+      this.paymentMethod =
+        "Refunded";
+    }
+
+    next();
+  }
+);
+
+// ========================================
+// EXPORT
+// ========================================
 
 module.exports =
   mongoose.model(

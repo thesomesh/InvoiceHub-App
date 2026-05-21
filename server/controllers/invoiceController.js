@@ -1,145 +1,29 @@
-const Invoice = require("../models/Invoice");
-const User = require("../models/User");
+const Invoice =
+  require("../models/Invoice");
+
+const User =
+  require("../models/User");
+
+const Product =
+  require("../models/Product");
+
 const {
   calculateInvoice,
-} = require("../utils/calculateInvoice");
+} = require(
+  "../utils/calculateInvoice"
+);
 
 const {
   generateInvoiceNumber,
-} = require("../services/invoiceNumberService");
+} = require(
+  "../services/invoiceNumberService"
+);
 
 const {
   generatePDF,
-} = require("../services/pdfService");
-
-const Product = require("../models/Product");
-
-// ========================================
-// HELPERS
-// ========================================
-
-const sanitizeFileName = (
-  name
-) =>
-  String(name || "invoice")
-    .replace(
-      /[\\/:*?"<>|]/g,
-      "-"
-    )
-    .replace(/\s+/g, " ")
-    .trim();
-
-const isFiniteNumber = (
-  v
-) =>
-  typeof v === "number" &&
-  Number.isFinite(v);
-
-const pickPercent = (
-  primary,
-  fallback
-) => {
-  const parsedPrimary =
-    Number(primary);
-
-  if (
-    Number.isFinite(
-      parsedPrimary
-    )
-  ) {
-    return parsedPrimary;
-  }
-
-  const parsedFallback =
-    Number(fallback);
-
-  if (
-    Number.isFinite(
-      parsedFallback
-    )
-  ) {
-    return parsedFallback;
-  }
-
-  return 0;
-};
-
-// ========================================
-// NORMALIZE FINANCIALS
-// ========================================
-
-const normalizeInvoiceFinancials =
-  (invoice) => {
-    if (
-      !invoice ||
-      !Array.isArray(
-        invoice.items
-      ) ||
-      invoice.items.length ===
-        0
-    ) {
-      return {
-        normalized:
-          invoice,
-
-        patch: null,
-      };
-    }
-
-    const recalculated =
-      calculateInvoice({
-        items:
-          invoice.items,
-
-        taxRate:
-          pickPercent(
-            invoice.taxRate,
-            invoice.taxPercentage
-          ),
-
-        discountRate:
-          pickPercent(
-            invoice.discountRate,
-            invoice.discountPercentage
-          ),
-      });
-
-    return {
-      normalized: {
-        ...invoice,
-        ...recalculated,
-      },
-
-      patch: {
-        items:
-          recalculated.items,
-
-        subtotal:
-          recalculated.subtotal,
-
-        taxRate:
-          recalculated.taxRate,
-
-        taxPercentage:
-          recalculated.taxPercentage,
-
-        taxAmount:
-          recalculated.taxAmount,
-
-        discountRate:
-          recalculated.discountRate,
-
-        discountPercentage:
-          recalculated.discountPercentage,
-
-        discountAmount:
-          recalculated.discountAmount,
-
-        total:
-          recalculated.total,
-      },
-    };
-  };
+} = require(
+  "../services/pdfService"
+);
 
 // ========================================
 // CREATE INVOICE
@@ -156,73 +40,24 @@ const createInvoice =
         customer,
         items,
 
-        taxRate,
-        taxPercentage,
+        taxRate = 0,
 
-        discountRate,
-        discountPercentage,
-
-        date,
-        dueDate,
+        discountRate = 0,
 
         notes,
 
-        status,
+        date,
 
-        paymentMethod,
+        dueDate,
 
-        amountPaid,
+        status =
+          "pending",
+
+        paymentMethod =
+          "Not Paid Yet",
+
+        amountPaid = 0,
       } = req.body;
-
-      const normalizedTaxRate =
-        pickPercent(
-          taxRate,
-          taxPercentage
-        );
-
-      const normalizedDiscountRate =
-        pickPercent(
-          discountRate,
-          discountPercentage
-        );
-
-      // ========================================
-      // VALIDATE PRODUCTS
-      // ========================================
-
-      for (const item of items) {
-        const product =
-          await Product.findOne(
-            {
-              name:
-                item.name,
-
-              createdBy:
-                req.user._id,
-            }
-          );
-
-        if (!product) {
-          return res
-            .status(404)
-            .json({
-              message: `${item.name} not found`,
-            });
-        }
-
-        if (
-          Number(item.qty) >
-          Number(
-            product.stock
-          )
-        ) {
-          return res
-            .status(400)
-            .json({
-              message: `Only ${product.stock} ${product.unit} available for ${product.name}`,
-            });
-        }
-      }
 
       // ========================================
       // CALCULATE
@@ -232,23 +67,17 @@ const createInvoice =
         calculateInvoice({
           items,
 
-          taxRate:
-            normalizedTaxRate,
+          taxRate,
 
-          discountRate:
-            normalizedDiscountRate,
+          discountRate,
         });
 
       // ========================================
-      // NUMBER
+      // PAYMENT
       // ========================================
 
-      const invoiceNumber =
-        await generateInvoiceNumber();
-
-      // ========================================
-      // PAYMENT LOGIC
-      // ========================================
+      let finalStatus =
+        status;
 
       let finalPaymentMethod =
         paymentMethod;
@@ -265,22 +94,23 @@ const createInvoice =
       // PENDING
 
       if (
-        status ===
+        finalStatus ===
         "pending"
       ) {
-        finalPaymentMethod =
-          "Not Paid Yet";
-
         finalAmountPaid = 0;
 
         finalDueAmount =
           calculated.total;
+
+        finalPaymentMethod =
+          "Not Paid Yet";
       }
 
       // PAID
 
       if (
-        status === "paid"
+        finalStatus ===
+        "paid"
       ) {
         finalAmountPaid =
           calculated.total;
@@ -291,22 +121,9 @@ const createInvoice =
       // PARTIAL
 
       if (
-        status ===
+        finalStatus ===
         "partial"
       ) {
-        if (
-          !Number.isFinite(
-            finalAmountPaid
-          )
-        ) {
-          return res
-            .status(400)
-            .json({
-              message:
-                "Invalid payment amount",
-            });
-        }
-
         if (
           finalAmountPaid <=
           0
@@ -327,7 +144,7 @@ const createInvoice =
             .status(400)
             .json({
               message:
-                "Partial payment must be less than total invoice amount",
+                "Partial payment must be less than total amount",
             });
         }
 
@@ -339,111 +156,109 @@ const createInvoice =
       // CANCELLED
 
       if (
-        status ===
+        finalStatus ===
         "cancelled"
       ) {
-        finalPaymentMethod =
-          "Not Paid Yet";
-
         finalAmountPaid = 0;
 
         finalDueAmount = 0;
+
+        finalPaymentMethod =
+          "Refunded";
       }
 
       // ========================================
       // CREATE
       // ========================================
 
-      const invoice =
-        await Invoice.create({
-          userId:
-            req.user._id,
+  // 1. CREATE INVOICE
+const invoice = await Invoice.create({
+  userId: req.user._id,
+  invoiceNumber:
+    await generateInvoiceNumber(),
+  customer,
+  items: calculated.items,
+  subtotal: calculated.subtotal,
+  taxRate: calculated.taxRate,
+  taxPercentage:
+    calculated.taxPercentage,
+  taxAmount:
+    calculated.taxAmount,
+  discountRate:
+    calculated.discountRate,
+  discountPercentage:
+    calculated.discountPercentage,
+  discountAmount:
+    calculated.discountAmount,
+  total: calculated.total,
+  notes,
+  date: date || Date.now(),
+  dueDate: dueDate || null,
+  status: finalStatus,
+  paymentMethod:
+    finalPaymentMethod,
+  amountPaid:
+    finalAmountPaid,
+  dueAmount:
+    finalDueAmount,
+});
 
-          invoiceNumber,
 
-          date:
-            date ||
-            Date.now(),
+// 2. UPDATE PRODUCTS
+for (const item of items) {
+  const product = await Product.findOne({
+    name: item.name,
+    createdBy: req.user._id,
+  });
 
-          dueDate:
-            dueDate || null,
+  if (!product) continue;
 
-          customer,
+  const soldQty = Number(item.qty);
 
-          ...calculated,
+  product.stock =
+    Number(product.stock) - soldQty;
 
-          notes:
-            notes || null,
+  if (product.stock < 0) {
+    product.stock = 0;
+  }
 
-          status:
-            status ||
-            "pending",
+  product.totalValue =
+    Number(product.stock) *
+    Number(product.sellingPrice);
 
-          paymentMethod:
-            finalPaymentMethod,
+  const profitPerItem =
+    Number(product.sellingPrice) -
+    Number(product.costPrice);
 
-          amountPaid:
-            finalAmountPaid,
+  product.expectedProfit =
+    Number(product.stock) *
+    profitPerItem;
 
-          dueAmount:
-            finalDueAmount,
-        });
+  product.totalSales =
+    Number(product.totalSales || 0) +
+    soldQty *
+      Number(product.sellingPrice);
 
-      // ========================================
-      // UPDATE INVENTORY
-      // ========================================
+  product.totalSalesProfit =
+    Number(product.totalSalesProfit || 0) +
+    soldQty * profitPerItem;
 
-      if (
-        status !==
-        "cancelled"
-      ) {
-        for (const item of items) {
-          const product =
-            await Product.findOne(
-              {
-                name:
-                  item.name,
+  await product.save();
+}
 
-                createdBy:
-                  req.user
-                    ._id,
-              }
-            );
 
-          if (product) {
-            product.stock =
-              Number(
-                product.stock
-              ) -
-              Number(
-                item.qty
-              );
-
-            if (
-              product.stock <
-              0
-            ) {
-              product.stock = 0;
-            }
-
-            await product.save();
-          }
-        }
-      }
-
-      res.status(201).json({
-        message:
-          "Invoice created successfully",
-
-        invoice,
-      });
+// 3. RESPONSE
+res.status(201).json({
+  success: true,
+  invoice,
+});
     } catch (err) {
       next(err);
     }
   };
 
 // ========================================
-// GET INVOICES
+// GET ALL
 // ========================================
 
 const getInvoices =
@@ -453,35 +268,84 @@ const getInvoices =
     next
   ) => {
     try {
-      const filter = {
-        userId:
-          req.user._id,
+
+      const {
+        status,
+        search,
+        customer,
+        fromDate,
+        toDate,
+      } = req.query;
+
+      let query = {
+        userId: req.user._id,
       };
 
+      // STATUS FILTER
+
       if (
-        req.query.status
+        status &&
+        status !== "all"
       ) {
-        filter.status =
-          req.query.status;
+        query.status = status;
+      }
+
+      // SEARCH INVOICE NUMBER
+
+      if (search) {
+        query.invoiceNumber = {
+          $regex: search,
+          $options: "i",
+        };
+      }
+
+      // CUSTOMER SEARCH
+
+      if (customer) {
+        query["customer.name"] = {
+          $regex: customer,
+          $options: "i",
+        };
+      }
+
+      // DATE FILTER
+
+      if (
+        fromDate ||
+        toDate
+      ) {
+        query.date = {};
+
+        if (fromDate) {
+          query.date.$gte =
+            new Date(fromDate);
+        }
+
+        if (toDate) {
+          query.date.$lte =
+            new Date(toDate);
+        }
       }
 
       const invoices =
         await Invoice.find(
-          filter
+          query
         ).sort({
           createdAt: -1,
         });
 
       res.status(200).json({
+        success: true,
         invoices,
       });
+
     } catch (err) {
       next(err);
     }
   };
 
 // ========================================
-// GET SINGLE INVOICE
+// GET SINGLE
 // ========================================
 
 const getInvoiceById =
@@ -500,10 +364,12 @@ const getInvoiceById =
         });
 
       if (!invoice) {
-        return res.status(404).json({
-          message:
-            "Invoice not found",
-        });
+        return res
+          .status(404)
+          .json({
+            message:
+              "Invoice not found",
+          });
       }
 
       res.status(200).json(
@@ -526,81 +392,174 @@ const updateInvoiceStatus =
   ) => {
     try {
       const invoice =
-        await Invoice.findById(
-          req.params.id
-        );
+        await Invoice.findOne({
+          _id: req.params.id,
+
+          userId:
+            req.user._id,
+        });
 
       if (!invoice) {
-        return res.status(404).json({
-          message:
-            "Invoice not found",
-        });
+        return res
+          .status(404)
+          .json({
+            message:
+              "Invoice not found",
+          });
       }
 
       const {
         status,
+
         paymentMethod,
+
         amountPaid,
       } = req.body;
 
-      invoice.status =
-        status ||
-        invoice.status;
-
-      invoice.paymentMethod =
-        paymentMethod ||
-        invoice.paymentMethod;
-
-      invoice.amountPaid =
-        Number(
-          amountPaid || 0
-        );
-
-      invoice.dueAmount =
-        Number(
-          invoice.total || 0
-        ) -
-        Number(
-          amountPaid || 0
-        );
-
-      // AUTO PAID
+      // ========================================
+      // CANCELLED
+      // ========================================
 
       if (
-        invoice.dueAmount <=
-        0
+        status ===
+        "cancelled"
+      ) {
+        invoice.status =
+          "cancelled";
+
+        invoice.paymentMethod =
+          "Refunded";
+
+        invoice.amountPaid = 0;
+
+        invoice.dueAmount = 0;
+
+        await invoice.save();
+
+        return res
+          .status(200)
+          .json({
+            success: true,
+
+            invoice,
+          });
+      }
+
+      // ========================================
+      // PAID
+      // ========================================
+
+      if (
+        status === "paid"
       ) {
         invoice.status =
           "paid";
+
+        invoice.paymentMethod =
+          paymentMethod ||
+          invoice.paymentMethod;
 
         invoice.amountPaid =
           invoice.total;
 
         invoice.dueAmount = 0;
+
+        await invoice.save();
+
+        return res
+          .status(200)
+          .json({
+            success: true,
+
+            invoice,
+          });
       }
 
-      // RESET PENDING
+      // ========================================
+      // PARTIAL
+      // ========================================
+
+      if (
+        status ===
+        "partial"
+      ) {
+        const paid =
+          Number(
+            amountPaid || 0
+          );
+
+        if (paid <= 0) {
+          return res
+            .status(400)
+            .json({
+              message:
+                "Amount paid must be greater than 0",
+            });
+        }
+
+        if (
+          paid >=
+          invoice.total
+        ) {
+          invoice.status =
+            "paid";
+
+          invoice.amountPaid =
+            invoice.total;
+
+          invoice.dueAmount = 0;
+        } else {
+          invoice.status =
+            "partial";
+
+          invoice.amountPaid =
+            paid;
+
+          invoice.dueAmount =
+            invoice.total -
+            paid;
+        }
+
+        invoice.paymentMethod =
+          paymentMethod;
+
+        await invoice.save();
+
+        return res
+          .status(200)
+          .json({
+            success: true,
+
+            invoice,
+          });
+      }
+
+      // ========================================
+      // PENDING
+      // ========================================
 
       if (
         status ===
         "pending"
       ) {
+        invoice.status =
+          "pending";
+
+        invoice.paymentMethod =
+          "Not Paid Yet";
+
         invoice.amountPaid = 0;
 
         invoice.dueAmount =
           invoice.total;
-
-        invoice.paymentMethod =
-          "Not Paid Yet";
       }
 
-      const updated =
-        await invoice.save();
+      await invoice.save();
 
       res.status(200).json({
         success: true,
 
-        invoice: updated,
+        invoice,
       });
     } catch (err) {
       next(err);
@@ -630,13 +589,17 @@ const deleteInvoice =
         );
 
       if (!invoice) {
-        return res.status(404).json({
-          message:
-            "Invoice not found",
-        });
+        return res
+          .status(404)
+          .json({
+            message:
+              "Invoice not found",
+          });
       }
 
       res.status(200).json({
+        success: true,
+
         message:
           "Invoice deleted successfully",
       });
@@ -663,28 +626,38 @@ const recalculateInvoices =
         });
 
       for (const invoice of invoices) {
-        const {
-          patch,
-        } =
-          normalizeInvoiceFinancials(
-            invoice.toObject()
-          );
+        const recalculated =
+          calculateInvoice({
+            items:
+              invoice.items,
 
-        if (patch) {
-          await Invoice.updateOne(
-            {
-              _id:
-                invoice._id,
-            },
+            taxRate:
+              invoice.taxRate,
 
-            patch
-          );
-        }
+            discountRate:
+              invoice.discountRate,
+          });
+
+        invoice.subtotal =
+          recalculated.subtotal;
+
+        invoice.taxAmount =
+          recalculated.taxAmount;
+
+        invoice.discountAmount =
+          recalculated.discountAmount;
+
+        invoice.total =
+          recalculated.total;
+
+        await invoice.save();
       }
 
       res.status(200).json({
+        success: true,
+
         message:
-          "Invoices recalculated successfully",
+          "Invoices recalculated",
       });
     } catch (err) {
       next(err);
@@ -694,78 +667,80 @@ const recalculateInvoices =
 // ========================================
 // DOWNLOAD PDF
 // ========================================
-const downloadInvoicePDF = async (
-  req,
-  res
-) => {
-  try {
-    const invoice =
-      await Invoice.findOne({
-        _id: req.params.id,
 
-        userId:
-          req.user._id,
-      });
+const downloadInvoicePDF =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const invoice =
+        await Invoice.findOne({
+          _id: req.params.id,
 
-    if (!invoice) {
+          userId:
+            req.user._id,
+        });
+
+      if (!invoice) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Invoice not found",
+          });
+      }
+
+      const seller =
+        await User.findById(
+          req.user._id
+        );
+
+      const pdf =
+        await generatePDF(
+          invoice,
+          seller
+        );
+
+      const pdfBuffer =
+        Buffer.from(pdf);
+
+      res.setHeader(
+        "Content-Type",
+        "application/pdf"
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${invoice.invoiceNumber}.pdf"`
+      );
+
+      res.setHeader(
+        "Content-Length",
+        pdfBuffer.length
+      );
+
+      return res.end(
+        pdfBuffer
+      );
+    } catch (error) {
+      console.error(
+        "PDF Download Error:",
+        error
+      );
+
       return res
-        .status(404)
+        .status(500)
         .json({
           success: false,
+
           message:
-            "Invoice not found",
+            "Failed to generate PDF",
         });
     }
-
-    const seller =
-      await User.findById(
-        req.user._id
-      );
-
-    const pdf =
-      await generatePDF(
-        invoice,
-        seller
-      );
-
-    // CONVERT TO BUFFER
-
-    const pdfBuffer =
-      Buffer.from(pdf);
-
-    res.setHeader(
-      "Content-Type",
-      "application/pdf"
-    );
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${invoice.invoiceNumber}.pdf"`
-    );
-
-    res.setHeader(
-      "Content-Length",
-      pdfBuffer.length
-    );
-
-    return res.end(
-      pdfBuffer
-    );
-  } catch (error) {
-    console.error(
-      "PDF Download Error:",
-      error
-    );
-
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message:
-          "Failed to generate PDF",
-      });
-  }
-};
+  };
 
 // ========================================
 // EXPORTS

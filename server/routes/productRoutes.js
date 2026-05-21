@@ -297,8 +297,6 @@ router.post(
 
           expectedProfit,
 
-          soldQuantity: 0,
-
           totalSales: 0,
 
           totalSalesProfit: 0,

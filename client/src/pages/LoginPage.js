@@ -54,24 +54,25 @@ const LoginPage = () => {
 
       <div className="auth-grid">
         <section className="auth-panel">
-          <span className="auth-kicker">Invoice Workspace</span>
-          <h1 className="auth-title">Welcome back to your billing command center.</h1>
+          <span className="auth-kicker">Invoice Hub Workspace</span>
+          <h1 className="auth-title">Manage invoices with a clean, simple workflow.</h1>
           <p className="auth-subtitle">
-            Sign in to create polished invoices, track payment status, and ship shareable PDFs in minutes.
+           Create professional invoices, track payments, and export PDFs instantly.
           </p>
 
           <div className="auth-metrics">
             <div className="auth-metric">
-              <strong>3 min</strong>
-              <span>Average invoice creation</span>
+              <strong>Fast & Simple</strong>
+              <span>Create invoices in minutes</span>
             </div>
             <div className="auth-metric">
-              <strong>PDF ready</strong>
-              <span>One-click export quality</span>
+              <strong>
+Professional PDFs</strong>
+              <span>Ready to download and share</span>
             </div>
             <div className="auth-metric">
-              <strong>Live status</strong>
-              <span>Draft, sent, paid tracking</span>
+              <strong>Payment Tracking</strong>
+              <span>Monitor pending, partial, and paid invoices</span>
             </div>
           </div>
         </section>
