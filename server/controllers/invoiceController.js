@@ -226,6 +226,10 @@ for (const item of items) {
     Number(product.stock) *
     Number(product.sellingPrice);
 
+  product.expectedProfit =
+  Number(product.stock) *
+  Number(product.profitPerUnit); 
+  
   // ACTUAL SELL PRICE FROM INVOICE
 const actualSellPrice =
   Number(item.price);
@@ -449,7 +453,9 @@ if (status === "cancelled") {
     product.totalValue =
       Number(product.stock) *
       Number(product.sellingPrice);
-
+     product.expectedProfit =
+     Number(product.stock) *
+    Number(product.profitPerUnit);
     // REMOVE SALES REVENUE
     product.totalSales =
       Number(product.totalSales || 0) -
