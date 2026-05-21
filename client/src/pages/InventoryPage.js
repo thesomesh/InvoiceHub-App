@@ -9,8 +9,6 @@ import { productAPI } from "../services/productAPI";
 const defaultCategories = [
   "General",
   "Grocery",
-  "Electronics",
-  "Hardware",
 ];
 
 const defaultUnits = [
