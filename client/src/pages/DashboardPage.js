@@ -558,12 +558,22 @@ const DashboardPage = () => {
             Dashboard
           </h1>
 
-          <p className="text-gray-500 mt-1">
-            Welcome back,{" "}
-            {
-              user?.businessName
-            }
-          </p>
+          <p className="text-lg font-medium text-gray-700 mt-1">
+  {(() => {
+    const hour =
+      new Date().getHours();
+
+    if (hour < 12)
+      return `Good Morning, ${user?.name}`;
+
+    if (hour < 17)
+      return `Good Afternoon, ${user?.name}`;
+
+    return `Good Evening, ${user?.name}`;
+  })()}
+</p>
+
+
         </div>
 
         <Link
