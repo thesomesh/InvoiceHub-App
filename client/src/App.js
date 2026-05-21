@@ -95,7 +95,10 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-
+<Route
+  path="/create-invoice"
+  element={<CreateInvoicePage />}
+/>
             <Route
               path="/invoices/:id"
               element={

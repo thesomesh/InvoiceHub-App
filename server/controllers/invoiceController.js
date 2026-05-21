@@ -226,22 +226,24 @@ for (const item of items) {
     Number(product.stock) *
     Number(product.sellingPrice);
 
-  const profitPerItem =
-    Number(product.sellingPrice) -
-    Number(product.costPrice);
+  // ACTUAL SELL PRICE FROM INVOICE
+const actualSellPrice =
+  Number(item.price);
 
-  product.expectedProfit =
-    Number(product.stock) *
-    profitPerItem;
+// REAL PROFIT
+const profitPerItem =
+  actualSellPrice -
+  Number(product.costPrice);
 
-  product.totalSales =
-    Number(product.totalSales || 0) +
-    soldQty *
-      Number(product.sellingPrice);
+// TOTAL REVENUE
+product.totalSales =
+  Number(product.totalSales || 0) +
+  soldQty * actualSellPrice;
 
-  product.totalSalesProfit =
-    Number(product.totalSalesProfit || 0) +
-    soldQty * profitPerItem;
+// NET PROFIT
+product.totalSalesProfit =
+  Number(product.totalSalesProfit || 0) +
+  soldQty * profitPerItem;
 
   await product.save();
 }
@@ -419,31 +421,77 @@ const updateInvoiceStatus =
       // ========================================
       // CANCELLED
       // ========================================
+if (status === "cancelled") {
 
-      if (
-        status ===
-        "cancelled"
-      ) {
-        invoice.status =
-          "cancelled";
+  // RESTORE INVENTORY
+  for (const item of invoice.items) {
 
-        invoice.paymentMethod =
-          "Refunded";
+    const product =
+      await Product.findOne({
+        name: item.name,
+        createdBy: req.user._id,
+      });
 
-        invoice.amountPaid = 0;
+    if (!product) continue;
 
-        invoice.dueAmount = 0;
+    const returnedQty =
+      Number(item.qty);
 
-        await invoice.save();
+    const returnedAmount =
+      Number(item.price);
 
-        return res
-          .status(200)
-          .json({
-            success: true,
+    // ADD STOCK BACK
+    product.stock =
+      Number(product.stock) +
+      returnedQty;
 
-            invoice,
-          });
-      }
+    // UPDATE INVENTORY VALUE
+    product.totalValue =
+      Number(product.stock) *
+      Number(product.sellingPrice);
+
+    // REMOVE SALES REVENUE
+    product.totalSales =
+      Number(product.totalSales || 0) -
+      returnedQty * returnedAmount;
+
+    // REMOVE PROFIT
+    const profitPerItem =
+      returnedAmount -
+      Number(product.costPrice);
+
+    product.totalSalesProfit =
+      Number(product.totalSalesProfit || 0) -
+      returnedQty * profitPerItem;
+
+    // PREVENT NEGATIVE VALUES
+    if (product.totalSales < 0) {
+      product.totalSales = 0;
+    }
+
+    if (product.totalSalesProfit < 0) {
+      product.totalSalesProfit = 0;
+    }
+
+    await product.save();
+  }
+
+  // UPDATE INVOICE
+  invoice.status = "cancelled";
+
+  invoice.paymentMethod = "Refunded";
+
+  invoice.amountPaid = 0;
+
+  invoice.dueAmount = 0;
+
+  await invoice.save();
+
+  return res.status(200).json({
+    success: true,
+    invoice,
+  });
+}
 
       // ========================================
       // PAID
