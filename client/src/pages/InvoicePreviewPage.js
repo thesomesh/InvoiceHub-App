@@ -129,8 +129,12 @@ const InvoicePreviewPage = () => {
             <p className="invoice-head-subtitle">Thank you for your business. Please review the invoice details below.</p>
           </div>
           <div className="invoice-total-pill">
-            <span>Amount Due</span>
-            <strong>{formatCurrency(invoice.total)}</strong>
+            <span>Total Amount </span>
+          <strong>
+  {formatCurrency(
+    invoice.total
+  )}
+</strong>
           </div>
         </section>
 
@@ -196,7 +200,8 @@ const InvoicePreviewPage = () => {
           </div>
         </section>
 
-       <section className="invoice-summary-panel">
+      <section className="invoice-summary-panel">
+
   {/* SUBTOTAL */}
 
   <div className="invoice-summary-row">
@@ -211,49 +216,90 @@ const InvoicePreviewPage = () => {
 
   {/* DISCOUNT */}
 
-  <div className="invoice-summary-row">
-    <span>
-      {discountPercent > 0
-        ? `Discount (${discountPercent}%)`
-        : "Discount (0%)"}
-    </span>
+  {Number(
+    invoice.discountAmount || 0
+  ) > 0 && (
 
-    <strong>
-      -{" "}
-      {formatCurrency(
-        invoice.discountAmount ||
-          0
-      )}
-    </strong>
-  </div>
+    <div className="invoice-summary-row">
+
+     <span>
+        Discount
+        ({invoice.discountRate || 0}%)
+      </span>
+
+      <strong>
+        -{" "}
+        {formatCurrency(
+          invoice.discountAmount
+        )}
+      </strong>
+
+    </div>
+  )}
 
   {/* TAX */}
 
+  {Number(
+    invoice.taxAmount || 0
+  ) > 0 && (
+
+    <div className="invoice-summary-row">
+
+      <span>
+        Tax (
+        {taxPercent}%)
+      </span>
+
+      <strong>
+        {formatCurrency(
+          invoice.taxAmount
+        )}
+      </strong>
+
+    </div>
+  )}
+
+  {Number(
+  invoice.roundOff || 0
+) !== 0 && (
+
   <div className="invoice-summary-row">
+
     <span>
-      {taxPercent > 0
-        ? `Tax (${taxPercent}%)`
-        : "Tax (0%)"}
+      Round Off
     </span>
 
     <strong>
-      {formatCurrency(
-        invoice.taxAmount ||
-          0
-      )}
-    </strong>
-  </div>
 
-  {/* TOTAL */}
+      {Number(
+        invoice.roundOff
+      ) > 0
+        ? "+"
+        : ""}
+
+      {formatCurrency(
+        invoice.roundOff
+      )}
+
+    </strong>
+
+  </div>
+)}
+
+  {/* GRAND TOTAL */}
 
   <div className="invoice-summary-total">
-    <span>Total</span>
+
+    <span>
+      Grand Total
+    </span>
 
     <strong>
-      {formatCurrency(
-        invoice.total
-      )}
+  {formatCurrency(
+  invoice.total
+)}
     </strong>
+
   </div>
 
   {/* PAYMENT STATUS */}
@@ -335,9 +381,81 @@ const InvoicePreviewPage = () => {
       )}
     </strong>
   </div>
-</section>
 
+</section>
+{/* PAYMENT HISTORY */}
+
+{invoice.paymentHistory &&
+ invoice.paymentHistory.length > 0 && (
+
+  <section className="invoice-notes-block">
+
+    <p className="invoice-notes-label">
+      Payment History
+    </p>
+
+    <div className="space-y-3 mt-4">
+
+      {invoice.paymentHistory.map(
+        (payment, index) => (
+
+          <div
+            key={index}
+            className="flex justify-between items-center p-4 rounded-2xl border border-gray-100 bg-gray-50"
+          >
+
+            <div>
+
+              <p className="font-semibold text-gray-900">
+                {payment.amount < 0
+                  ? "Refunded"
+                  : payment.method}
+              </p>
+
+              <p className="text-sm text-gray-500">
+                {new Date(
+  payment.date
+).toLocaleString("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true
+})}
+              </p>
+
+            </div>
+
+            <strong
+              className={`text-lg ${
+                payment.amount < 0
+                  ? "text-red-600"
+                  : "text-green-600"
+              }`}
+            >
+              {payment.amount < 0
+                ? "-"
+                : "+"}
+
+              {formatCurrency(
+                Math.abs(
+                  payment.amount
+                )
+              )}
+            </strong>
+
+          </div>
+
+        )
+      )}
+
+    </div>
+
+  </section>
+)}
         {invoice.notes && (
+          
           <section className="invoice-notes-block">
             <p className="invoice-notes-label">Notes</p>
             <p>{invoice.notes}</p>
@@ -345,6 +463,9 @@ const InvoicePreviewPage = () => {
         )}
       </div>
     </div>
+
+
+
   );
 };
 

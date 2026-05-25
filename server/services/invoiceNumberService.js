@@ -1,4 +1,5 @@
-const Counter = require("../models/Counter");
+const Counter =
+  require("../models/Counter");
 
 /**
  * Generate professional invoice number
@@ -10,37 +11,81 @@ const Counter = require("../models/Counter");
  * INV-20260519-00001
  */
 
-const generateInvoiceNumber = async () => {
-  try {
-    const now = new Date();
+const generateInvoiceNumber =
+  async (userId) => {
+    try {
 
-    // Date parts
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+      const now =
+        new Date();
 
-    // Formatted date
-    const datePart = `${year}${month}${day}`;
+      // ========================================
+      // DATE PARTS
+      // ========================================
 
-    // Counter ID per day
-    const counterId = `invoice_${datePart}`;
+      const year =
+        now.getFullYear();
 
-    // Get atomic sequence
-    const sequence = await Counter.getNextSequence(counterId);
+      const month =
+        String(
+          now.getMonth() + 1
+        ).padStart(2, "0");
 
-    // Format sequence
-    const formattedSequence = String(sequence).padStart(5, "0");
+      const day =
+        String(
+          now.getDate()
+        ).padStart(2, "0");
 
-    // Final invoice number
-    const invoiceNumber = `INV-${datePart}-${formattedSequence}`;
+      // ========================================
+      // DATE FORMAT
+      // ========================================
 
-    return invoiceNumber;
-  } catch (error) {
-    console.error("Invoice number generation failed:", error);
+      const datePart =
+        `${year}${month}${day}`;
 
-    throw new Error("Unable to generate invoice number");
-  }
-};
+      // ========================================
+      // UNIQUE USER COUNTER
+      // ========================================
+
+      const counterId =
+        `invoice_${userId}_${datePart}`;
+
+      // ========================================
+      // GET SEQUENCE
+      // ========================================
+
+      const sequence =
+        await Counter.getNextSequence(
+          counterId
+        );
+
+      // ========================================
+      // FORMAT
+      // ========================================
+
+      const formattedSequence =
+        String(sequence).padStart(
+          5,
+          "0"
+        );
+
+      // ========================================
+      // FINAL NUMBER
+      // ========================================
+
+      return `INV-${datePart}-${formattedSequence}`;
+
+    } catch (error) {
+
+      console.error(
+        "Invoice number generation failed:",
+        error
+      );
+
+      throw new Error(
+        "Unable to generate invoice number"
+      );
+    }
+  };
 
 module.exports = {
   generateInvoiceNumber,

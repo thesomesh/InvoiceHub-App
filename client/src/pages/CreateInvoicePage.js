@@ -18,7 +18,7 @@ const TrashIcon = () => (
   </svg>
 );
 
-const emptyItem = () => ({ name: "", qty: 1, price: "" });
+const emptyItem = () => ({ name: "", qty: 1, price: "" ,  discountRate: 0 ,});
 
 const CreateInvoicePage = () => {
   const { user } = useAuth();
@@ -36,6 +36,7 @@ const [
   paymentMethod,
   setPaymentMethod,
 ] = useState("Cash");
+
 
 const [
   amountPaid,
@@ -56,7 +57,27 @@ const [
   }, [user?.id]);
 
   const totals = calculateTotals(items, taxRate, discountRate);
+// ========================================
+// ROUND OFF
+// ========================================
+const actualTotal =
+  totals.total;
 
+const roundedTotal =
+  Math.round(
+    actualTotal
+  );
+
+const roundOff =
+  Number(
+    (
+      roundedTotal -
+      actualTotal
+    ).toFixed(2)
+  );
+
+const finalGrandTotal =
+  roundedTotal;
   const updateCustomer = (e) => {
     setCustomer((c) => ({ ...c, [e.target.name]: e.target.value }));
     setFieldErrors((p) => ({ ...p, [`customer.${e.target.name}`]: "" }));
@@ -94,15 +115,46 @@ const fetchProducts =
 
 
 
+const updateItem = (
+  index,
+  field,
+  value
+) => {
+  setItems((prev) => {
+    const updated = [...prev];
 
-  const updateItem = (index, field, value) => {
-    setItems((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
+
+    return updated;
+  });
+
+  setFieldErrors(
+    (prev) => {
+      const updated = {
+        ...prev
+      };
+
+      delete updated[
+        `items[${index}].qty`
+      ];
+
+      delete updated[
+        `items[${index}].name`
+      ];
+
+      delete updated[
+        `items[${index}].price`
+      ];
+
       return updated;
-    });
-  };
+    }
+  );
 
+  setError("");
+};
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
 
   const removeItem = (index) => {
@@ -118,25 +170,34 @@ const fetchProducts =
       if (!item.name.trim()) errors[`items[${i}].name`] = "Item name required";
       if (!item.qty || parseFloat(item.qty) < 1) errors[`items[${i}].qty`] = "Qty ≥ 1";
 
-const selectedProduct =
-  products.find(
-    (p) =>
-      p.name === item.name
-  );
+const productQtyMap = {};
 
-if (
-  selectedProduct &&
-  Number(item.qty) >
-    Number(
-      selectedProduct.stock
-    )
-) {
-  errors[
-    `items[${i}].qty`
-  ] =
-    `Only ${selectedProduct.stock} quantity available`;
-}
+items.forEach((item) => {
+  if (!item.name) return;
 
+  productQtyMap[item.name] =
+    (productQtyMap[item.name] || 0) +
+    Number(item.qty || 0);
+});
+
+items.forEach((item, i) => {
+  const selectedProduct =
+    products.find(
+      (p) =>
+        p.name === item.name
+    );
+
+  if (
+    selectedProduct &&
+    productQtyMap[item.name] >
+      Number(selectedProduct.stock)
+  ) {
+    errors[
+      `items[${i}].qty`
+    ] =
+      `${selectedProduct.name} has only ${selectedProduct.stock} ${selectedProduct.unit} left`;
+  }
+});
       if (item.price === "" || parseFloat(item.price) < 0) errors[`items[${i}].price`] = "Price ≥ 0";
     });
     return errors;
@@ -158,14 +219,18 @@ if (
       const payload = {
   customer,
 
-  items: items.map((i) => ({
-    name: i.name.trim(),
+items: items.map((i) => ({
+  name: i.name.trim(),
 
-    qty: parseFloat(i.qty),
+  qty: parseFloat(i.qty),
 
-    price: parseFloat(i.price),
-  })),
+  price: parseFloat(i.price),
 
+  discountRate:
+    parseFloat(
+      i.discountRate || 0
+    ),
+})),
   taxRate:
     parseFloat(taxRate) || 0,
 
@@ -177,7 +242,7 @@ if (
 
   discountPercentage:
     parseFloat(discountRate) || 0,
-
+roundOff,
   date,
 
   dueDate:
@@ -196,15 +261,16 @@ if (
       : paymentMethod,
 
   amountPaid:
-    status === "paid"
-      ? totals.total
-      : Number(amountPaid || 0),
+     Number(amountPaid || 0),
 
   dueAmount:
-    status === "paid"
-      ? 0
-      : totals.total -
-        Number(amountPaid || 0),
+  Math.max(
+    Math.round(
+      totals.total
+    ) -
+    Number(amountPaid || 0),
+    0
+  ),
 };
 
       const res = await invoiceAPI.create(payload);
@@ -450,8 +516,12 @@ if (
                     name:
                       selectedProduct.name,
 
-                    price:
-                      selectedProduct.sellingPrice,
+                price:
+  selectedProduct.finalSellingPrice ||
+  selectedProduct.sellingPrice,
+
+discountRate:
+  selectedProduct.discountPercentage || 0,
 
                     unit:
                       selectedProduct.unit,
@@ -854,7 +924,31 @@ if (
             </span>
           </div>
         )}
+{
+  Number(amountPaid || 0) > 0 &&
+  roundOff !== 0 && (
 
+    <div className="flex items-center justify-between">
+
+      <span className="text-sm text-gray-500">
+        Round Off
+      </span>
+
+      <span className="font-semibold text-gray-700">
+
+        {roundOff > 0
+          ? "+"
+          : ""}
+
+        {formatCurrency(
+          roundOff
+        )}
+
+      </span>
+
+    </div>
+  )
+}
         {/* TOTAL */}
 
         <div className="pt-4 mt-4 border-t border-gray-100">
@@ -865,7 +959,9 @@ if (
 
             <span className="text-3xl font-extrabold text-indigo-600 tracking-tight">
               {formatCurrency(
-                totals.total
+              Math.round(
+    totals.total
+  )
               )}
             </span>
           </div>
@@ -891,11 +987,30 @@ if (
           <select
             className="input"
             value={status}
-            onChange={(e) =>
-              setStatus(
-                e.target.value
-              )
-            }
+           onChange={(e) => {
+  const newStatus =
+    e.target.value;
+
+  setStatus(newStatus);
+
+  if (
+    newStatus === "pending" ||
+    newStatus === "cancelled"
+  ) {
+    setAmountPaid("");
+    setPaymentMethod(
+      "Not Paid Yet"
+    );
+  }
+
+  if (newStatus === "paid") {
+    setAmountPaid(
+      Math.round(
+        totals.total
+      )
+    );
+  }
+}}
           >
             <option value="pending">
               Pending
@@ -991,29 +1106,23 @@ if (
               ₹
             </span>
 
-            <input
-              type="number"
-              className="input pl-8"
-              value={
-                status ===
-                "paid"
-                  ? totals.total
-                  : amountPaid
-              }
-              onChange={(e) =>
-                setAmountPaid(
-                  e.target.value
-                )
-              }
-              disabled={
-                status ===
-                  "pending" ||
-                status ===
-                  "paid" ||
-                status ===
-                  "cancelled"
-              }
-            />
+           <input
+  type="number"
+  className="input pl-8"
+  value={amountPaid}
+  onChange={(e) =>
+    setAmountPaid(
+      e.target.value
+    )
+  }
+  disabled={
+     status === "pending" ||
+    status ===
+    "cancelled"
+ 
+  }
+/>
+          
           </div>
         </div>
 
@@ -1027,22 +1136,14 @@ if (
               Received
             </p>
 
-            <p className="text-2xl font-extrabold mt-2 text-green-600">
-              {status ===
-              "pending"
-                ? formatCurrency(
-                    0
-                  )
-                : status ===
-                  "paid"
-                ? formatCurrency(
-                    totals.total
-                  )
-                : formatCurrency(
-                    amountPaid ||
-                      0
-                  )}
-            </p>
+              <p className="text-2xl font-extrabold mt-2 text-green-600">
+
+    {formatCurrency(
+      amountPaid || 0
+    )}
+
+  </p>
+
           </div>
 
           {/* DUE */}
@@ -1061,11 +1162,13 @@ if (
                     0
                   )
                 : formatCurrency(
-                    totals.total -
-                      Number(
-                        amountPaid ||
-                          0
-                      )
+                    Math.max(
+  Math.round(
+    totals.total
+  ) -
+  Number(amountPaid || 0),
+  0
+)
                   )}
             </p>
           </div>

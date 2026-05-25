@@ -24,24 +24,36 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // CURRENT STOCK
+    // STOCK
     stock: {
       type: Number,
       required: true,
       default: 0,
     },
 
-    // BUY PRICE
+    // COST PRICE
     costPrice: {
       type: Number,
       required: true,
       default: 0,
     },
 
-    // SELL PRICE
+    // ORIGINAL SELLING PRICE
     sellingPrice: {
       type: Number,
       required: true,
+      default: 0,
+    },
+
+    // DEFAULT PRODUCT DISCOUNT
+    discountPercentage: {
+      type: Number,
+      default: 0,
+    },
+
+    // FINAL SELLING PRICE
+    finalSellingPrice: {
+      type: Number,
       default: 0,
     },
 
@@ -57,25 +69,28 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // FUTURE POSSIBLE PROFIT
+    // EXPECTED PROFIT
     expectedProfit: {
       type: Number,
       default: 0,
     },
 
-    // TOTAL SALES AMOUNT
+    // TOTAL REVENUE
     totalSales: {
       type: Number,
       default: 0,
     },
 
-    // ACTUAL EARNED PROFIT
+    // NET PROFIT
     totalSalesProfit: {
       type: Number,
       default: 0,
     },
-
-    // LOW STOCK ALERT
+totalCollected: {
+  type: Number,
+  default: 0,
+},
+    // LOW STOCK
     minimumStock: {
       type: Number,
       default: 5,
@@ -88,7 +103,6 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
   },
-
   {
     timestamps: true,
   }

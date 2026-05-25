@@ -73,6 +73,7 @@ const DashboardPage = () => {
     statusFilter,
     setStatusFilter,
   ] = useState("all");
+  const [paymentModeFilter, setPaymentModeFilter] = useState("all");
 
   const [fromDate, setFromDate] =
     useState("");
@@ -120,16 +121,36 @@ const DashboardPage = () => {
     setNewStatus,
   ] = useState("");
 
+const [
+  partialAmount,
+  setPartialAmount
+] = useState("");
   const [
-    partialAmount,
-    setPartialAmount,
-  ] = useState("");
+  paymentMethod,
+  setPaymentMethod
+] = useState("Cash");
 
-  const [
-    paymentMethod,
-    setPaymentMethod,
-  ] = useState("Cash");
+const [
+  currentPage,
+  setCurrentPage
+] = useState(1);
 
+const invoicesPerPage = 10;
+const [
+  summaryPeriod,
+  setSummaryPeriod
+] = useState("thisMonth");
+
+
+const [
+  customFrom,
+  setCustomFrom
+] = useState("");
+
+const [
+  customTo,
+  setCustomTo
+] = useState("");
   // ========================================
   // LOAD
   // ========================================
@@ -156,7 +177,10 @@ const DashboardPage = () => {
         params.customer =
           customerSearch.trim();
       }
-
+if (paymentModeFilter !== "all") {
+  params.paymentMethod =
+    paymentModeFilter;
+}
       if (fromDate) {
         params.fromDate =
           fromDate;
@@ -166,12 +190,14 @@ const DashboardPage = () => {
         params.toDate = toDate;
       }
 
-      fetchInvoices(params);
+     fetchInvoices(params);
+setCurrentPage(1);
     }, [
       fetchInvoices,
       statusFilter,
       search,
       customerSearch,
+      paymentModeFilter,
       fromDate,
       toDate,
     ]);
@@ -446,16 +472,13 @@ const DashboardPage = () => {
 
             paymentMethod,
 
-            amountPaid:
-              status === "paid"
-                ? invoice.total
-                : amountPaid,
+           amountPaid:
+  amountPaid,
 
-            dueAmount:
-              status === "paid"
-                ? 0
-                : invoice.total -
-                  amountPaid,
+            dueAmount: Math.max(
+  invoice.dueAmount - amountPaid,
+  0
+),
           }
         );
 
@@ -479,73 +502,284 @@ const DashboardPage = () => {
         }));
       }
     };
+const indexOfLastInvoice =
+  currentPage *
+  invoicesPerPage;
 
-  // ========================================
-  // STATS
-  // ========================================
+const indexOfFirstInvoice =
+  indexOfLastInvoice -
+  invoicesPerPage;
 
-  const stats = [
-    {
-      label:
-        "Total Invoices",
-      value:
-        invoices.length,
-      icon: FileText,
-    },
+const currentInvoices =
+  invoices.slice(
+    indexOfFirstInvoice,
+    indexOfLastInvoice
+  );
 
-    {
-      label:
-        "Completed Payments",
-      value: invoices.filter(
-        (i) =>
-          i.status ===
-          "paid"
-      ).length,
-      icon: CheckCircle2,
-    },
+const totalPages =
+  Math.ceil(
+    invoices.length /
+      invoicesPerPage
+  );
+const summaryInvoices =
+  invoices.filter((inv) => {
+    const d = new Date(inv.date);
+    const now = new Date();
 
-    {
-      label:
-        "Pending + Partial",
-      value: invoices.filter(
-        (i) =>
-          i.status ===
-            "pending" ||
-          i.status ===
-            "partial"
-      ).length,
-      icon: Clock3,
-    },
+    if (
+      summaryPeriod === "today"
+    ) {
+      return (
+        d.toDateString() ===
+        now.toDateString()
+      );
+    }
 
-    {
-      label:
-        "Inventory Value",
-      value: formatCurrency(
-        inventoryStats
-          ?.inventoryValue || 0
+    if (
+      summaryPeriod ===
+      "thisWeek"
+    ) {
+      const weekAgo =
+        new Date();
+
+      weekAgo.setDate(
+        now.getDate() - 7
+      );
+
+      return d >= weekAgo;
+    }
+
+    if (
+      summaryPeriod ===
+      "previousMonth"
+    ) {
+      return (
+        d.getMonth() ===
+          now.getMonth() - 1 &&
+        d.getFullYear() ===
+          now.getFullYear()
+      );
+    }
+
+    if (
+      summaryPeriod ===
+      "last3Months"
+    ) {
+      const threeMonthsAgo =
+        new Date();
+
+      threeMonthsAgo.setMonth(
+        now.getMonth() - 3
+      );
+
+      return d >= threeMonthsAgo;
+    }
+
+    if (
+      summaryPeriod ===
+      "custom"
+    ) {
+      if (
+        !customFrom ||
+        !customTo
+      ) {
+        return true;
+      }
+
+      return (
+        d >=
+          new Date(
+            customFrom
+          ) &&
+        d <=
+          new Date(
+            customTo
+          )
+      );
+    }
+
+    // default thisMonth
+    return (
+      d.getMonth() ===
+        now.getMonth() &&
+      d.getFullYear() ===
+        now.getFullYear()
+    );
+  });
+
+const activeSummaryInvoices =
+  summaryInvoices.filter(
+    (inv) =>
+      inv.status !==
+      "cancelled"
+  );
+
+const summaryStats = {
+  bills:
+  summaryInvoices.length,
+
+  revenue:
+    activeSummaryInvoices.reduce(
+      (sum, inv) =>
+        sum +
+        Number(
+          inv.total || 0
+        ),
+      0
+    ),
+
+  collected:
+    activeSummaryInvoices.reduce(
+      (sum, inv) =>
+        sum +
+        Number(
+          inv.amountPaid ||
+            0
+        ),
+      0
+    ),
+
+  due:
+    activeSummaryInvoices.reduce(
+      (sum, inv) =>
+        sum +
+        Number(
+          inv.dueAmount ||
+            0
+        ),
+      0
+    ),
+
+  refunded:
+    summaryInvoices
+      .filter(
+        (inv) =>
+          inv.status ===
+          "cancelled"
+      )
+      .reduce(
+        (sum, inv) =>
+          sum +
+          Number(
+            inv.total || 0
+          ),
+        0
       ),
-      icon: Wallet,
-    },
+};
+const overallProfit =
+  inventoryStats?.totalSalesProfit || 0;
+const totalRevenue =
+  invoices
+    .filter(
+      (inv) =>
+        inv.status !== "cancelled"
+    )
+    .reduce(
+      (sum, inv) =>
+        sum + Number(inv.total || 0),
+      0
+    );
+const summarySalesProfit =
+  summaryStats.revenue > 0 &&
+  totalRevenue > 0
+    ? (
+        (summaryStats.revenue /
+          totalRevenue) *
+        overallProfit
+      )
+    : 0; 
+const overallProfitMargin =
+  totalRevenue > 0
+    ? (
+        (overallProfit /
+          totalRevenue) *
+        100
+      ).toFixed(1)
+    : 0;
 
-    {
-      label:
-        "Expected Profit",
-      value: formatCurrency(
-        inventoryStats
-          ?.expectedProfit || 0
-      ),
-      icon: TrendingUp,
-    },
+const pendingCollections =
+  invoices
+    .filter(
+      (inv) =>
+        inv.status === "pending" ||
+        inv.status === "partial"
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.date) -
+        new Date(b.date)
+    )
+    .slice(0, 5);
 
-    {
-      label:
-        "Products",
-      value:
-        inventoryStats
-          ?.totalProducts || 0,
-      icon: Package,
-    },
-  ];
+
+
+
+
+
+const stats = [
+  // ROW 1 — FINANCIAL OVERVIEW
+
+  {
+    label: "Total Bills",
+    value: invoices.length,
+    icon: FileText,
+  },
+
+
+  {
+    label: "Outstanding Due",
+    value: formatCurrency(
+  invoices.reduce(
+    (sum, inv) =>
+      sum + Number(inv.dueAmount || 0),
+    0
+  )
+),
+    icon: Clock3,
+  },
+
+  // ROW 2 — BUSINESS HEALTH
+
+   {
+      label: "Inventory Worth",
+    value: formatCurrency(
+      inventoryStats?.inventoryValue || 0
+    ),
+    icon: Package,
+  },
+
+  {
+    label:
+      "Completed Bills",
+    value: invoices.filter(
+      (i) =>
+        i.status === "paid"
+    ).length,
+    icon: CheckCircle2,
+  },
+
+  {
+    label:
+      "Pending + Partial",
+    value: invoices.filter(
+      (i) =>
+        i.status ===
+          "pending" ||
+        i.status ===
+          "partial"
+    ).length,
+    icon: Clock3,
+  },
+
+  {
+  label: "Net Profit Margin",
+    value: `${overallProfitMargin}%`,
+    icon: TrendingUp,
+  },
+
+  
+
+];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -584,9 +818,249 @@ const DashboardPage = () => {
         </Link>
       </div>
 
-      {/* STATS */}
+   <div className="bg-white rounded-3xl border border-gray-100 p-5 mb-8">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
+  <div className="flex items-center justify-between flex-wrap gap-4">
+
+    <h2 className="text-lg font-semibold text-gray-800">
+      Summary Period
+    </h2>
+
+    <div className="flex gap-3 flex-wrap">
+
+      {[
+        {
+          key: "today",
+          label: "Today",
+        },
+        {
+          key: "thisWeek",
+          label: "This Week",
+        },
+        {
+          key: "thisMonth",
+          label: "This Month",
+        },
+        {
+          key: "previousMonth",
+          label: "Previous Month",
+
+        },
+
+        {
+    key: "custom",
+    label: "Custom",
+  },
+      ].map((p) => (
+        <button
+          key={p.key}
+          onClick={() =>
+            setSummaryPeriod(
+              p.key
+            )
+          }
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+            summaryPeriod ===
+            p.key
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-100 hover:bg-gray-200"
+          }`}
+        >
+          {p.label}
+        </button>
+      ))}
+
+    </div>
+{summaryPeriod ===
+  "custom" && (
+  <div className="flex gap-4 mt-5 w-full">
+
+    <input
+      type="date"
+      className="input"
+      value={customFrom}
+      onChange={(e) =>
+        setCustomFrom(
+          e.target.value
+        )
+      }
+    />
+
+    <input
+      type="date"
+      className="input"
+      value={customTo}
+      onChange={(e) =>
+        setCustomTo(
+          e.target.value
+        )
+      }
+    />
+
+  </div>
+)}
+  </div>
+
+</div>
+  <div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+
+  <h2 className="text-xl font-bold mb-5">
+    {summaryPeriod ===
+    "today"
+      ? "Today's Summary"
+      : summaryPeriod ===
+        "thisWeek"
+      ? "This Week Summary"
+      : summaryPeriod ===
+        "previousMonth"
+      ? "Previous Month Summary"
+      : "Monthly Summary"}
+  </h2>
+
+<div className="grid grid-cols-6 gap-6 items-center">
+
+   <div className="text-center">
+      <p className="text-gray-500">
+        Bills Created
+      </p>
+      <strong>
+        {
+          summaryStats.bills
+        }
+      </strong>
+    </div>
+
+    <div className="text-center">
+      <p className="text-gray-500">
+        Revenue
+      </p>
+      <strong>
+        {formatCurrency(
+          summaryStats.revenue
+        )}
+      </strong>
+    </div>
+
+    <div className="text-center">
+      <p className="text-gray-500">
+        Collected
+      </p>
+      <strong>
+        {formatCurrency(
+          summaryStats.collected
+        )}
+      </strong>
+    </div>
+
+  <div className="text-center">
+      <p className="text-gray-500">
+        Due
+      </p>
+      <strong>
+        {formatCurrency(
+          summaryStats.due
+        )}
+      </strong>
+    </div>
+<div className="text-center">
+  <p className="text-gray-500">
+    Sales Profit
+  </p>
+  <strong className="text-green-600">
+    {formatCurrency(
+      summarySalesProfit
+    )}
+  </strong>
+</div>
+   <div className="text-center">
+      <p className="text-gray-500">
+        Refunded
+      </p>
+      <strong>
+        {formatCurrency(
+          summaryStats.refunded
+        )}
+      </strong>
+    </div>
+
+  </div>
+
+</div>  
+
+
+<div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+  <div className="flex items-center justify-between mb-5">
+    <h2 className="text-xl font-bold">
+      Pending Collections
+    </h2>
+
+    <span className="text-sm text-gray-500">
+      {pendingCollections.length} invoices
+    </span>
+  </div>
+
+  {pendingCollections.length === 0 ? (
+    <p className="text-gray-500">
+      No pending collections
+    </p>
+  ) : (
+    <div className="space-y-4">
+      {pendingCollections.map(
+        (inv) => {
+          const daysPending =
+            Math.floor(
+              (new Date() -
+                new Date(inv.date)) /
+                (1000 * 60 * 60 * 24)
+            );
+
+          return (
+            <div
+              key={inv._id}
+              className="flex justify-between items-center border-b pb-3"
+            >
+              <div>
+                <p className="font-semibold">
+                  {inv.invoiceNumber}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  {inv.customer?.name}
+                </p>
+              </div>
+
+              <div className="text-right">
+                <p className="font-bold text-red-500">
+                  {formatCurrency(
+                    inv.dueAmount
+                  )}
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  {daysPending === 0
+                    ? "Due Today"
+                    : `${daysPending} Days Pending`}
+                </p>
+              </div>
+            </div>
+          );
+        }
+      )}
+    </div>
+  )}
+</div>
+
+
+
+
+
+<div className="mb-8">
+  <h2 className="text-xl font-bold text-gray-900 mb-5">
+    Business Performance Overview
+  </h2>
+  {/* STATS */}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
         {stats.map((s) => {
           const Icon = s.icon;
 
@@ -611,6 +1085,7 @@ const DashboardPage = () => {
                     size={24}
                     className="text-gray-700"
                   />
+           
                 </div>
               </div>
             </div>
@@ -618,101 +1093,164 @@ const DashboardPage = () => {
         })}
       </div>
 
-      {/* FILTERS */}
 
-      <div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+      
+{/* FILTERS */}
 
-          <input
-            type="text"
-            placeholder="Search invoice"
-            className="input"
-            value={search}
-            onChange={(e) =>
-              setSearch(
-                e.target.value
-              )
-            }
-          />
+<div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-center">
 
-          <input
-            type="text"
-            placeholder="Customer name"
-            className="input"
-            value={
-              customerSearch
-            }
-            onChange={(e) =>
-              setCustomerSearch(
-                e.target.value
-              )
-            }
-          />
+    {/* Invoice No */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+        Invoice No
+      </label>
+      <input
+        type="text"
+        placeholder="Search invoice"
+        className="input"
+        value={search}
+        onChange={(e) =>
+          setSearch(e.target.value)
+        }
+      />
+    </div>
 
-          <select
-            className="input"
-            value={
-              statusFilter
-            }
-            onChange={(e) =>
-              setStatusFilter(
-                e.target.value
-              )
-            }
-          >
-            <option value="all">
-              All Status
-            </option>
+    {/* Customer */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      Customer Name
+      </label>
+      <input
+        type="text"
+        placeholder="Customer name"
+        className="input"
+        value={customerSearch}
+        onChange={(e) =>
+          setCustomerSearch(
+            e.target.value
+          )
+        }
+      />
+    </div>
 
-            <option value="pending">
-              Pending
-            </option>
+    {/* Status */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+        Status
+      </label>
+      <select
+        className="input"
+        value={statusFilter}
+        onChange={(e) =>
+          setStatusFilter(
+            e.target.value
+          )
+        }
+      >
+        <option value="all">
+          All Status
+        </option>
+        <option value="pending">
+          Pending
+        </option>
+        <option value="partial">
+          Partial
+        </option>
+        <option value="paid">
+          Paid
+        </option>
+        <option value="cancelled">
+          Cancelled
+        </option>
+      </select>
+    </div>
 
-            <option value="partial">
-              Partial
-            </option>
+    {/* Payment Mode */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+        Payment Mode
+      </label>
+      <select
+        className="input"
+        value={paymentModeFilter}
+        onChange={(e) =>
+          setPaymentModeFilter(
+            e.target.value
+          )
+        }
+      >
+        <option value="all">
+          All Payment Modes
+        </option>
+        <option value="Cash">
+          Cash
+        </option>
+        <option value="UPI">
+          UPI
+        </option>
+        <option value="Card">
+          Card
+        </option>
+        <option value="Bank Transfer">
+          Bank Transfer
+        </option>
+        <option value="Cheque">
+          Cheque
+        </option>
+        <option value="Not Paid Yet">
+          Not Paid Yet
+        </option>
+        <option value="Refunded">
+          Refunded
+        </option>
+      </select>
+    </div>
 
-            <option value="paid">
-              Paid
-            </option>
+    {/* From Date */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+        From Date
+      </label>
+      <input
+        type="date"
+        className="input"
+        value={fromDate}
+        onChange={(e) =>
+          setFromDate(
+            e.target.value
+          )
+        }
+      />
+    </div>
 
-            <option value="cancelled">
-              Cancelled
-            </option>
-          </select>
+    {/* To Date */}
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+        To Date
+      </label>
+      <input
+        type="date"
+        className="input"
+        value={toDate}
+        onChange={(e) =>
+          setToDate(
+            e.target.value
+          )
+        }
+      />
+    </div>
 
-          <input
-            type="date"
-            className="input"
-            value={fromDate}
-            onChange={(e) =>
-              setFromDate(
-                e.target.value
-              )
-            }
-          />
+    {/* Apply */}
+  <button
+  onClick={load}
+  className="btn-primary h-[42px] mt-[26px] flex items-center justify-center"
+>
+      Apply
+    </button>
 
-          <input
-            type="date"
-            className="input"
-            value={toDate}
-            onChange={(e) =>
-              setToDate(
-                e.target.value
-              )
-            }
-          />
-
-          <button
-            onClick={load}
-            className="btn-primary"
-          >
-            Apply
-          </button>
-
-        </div>
-      </div>
-
+  </div>
+</div>
       {/* TABLE */}
 
       <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
@@ -728,22 +1266,21 @@ const DashboardPage = () => {
             description="Create your first invoice"
           />
         ) : (
-          <div className="overflow-x-auto">
-
-            <table className="w-full">
+          <div className="overflow-x-auto pr-6">
+<table className="w-full table-auto">
 
               <thead>
                 <tr className="border-b bg-gray-50">
 
-                  <th className="px-5 py-4 text-left">
+                  <th className="px-5 py-4 text-center whitespace-nowrap">
                     Invoice
                   </th>
 
-                  <th className="px-5 py-4 text-left">
+                 <th className="px-5 py-4 text-center whitespace-nowrap">
                     Customer
                   </th>
 
-                  <th className="px-5 py-4 text-left">
+                  <th className="px-5 py-4 text-center whitespace-nowrap">
                     Date
                   </th>
 
@@ -758,21 +1295,23 @@ const DashboardPage = () => {
                   <th className="px-5 py-4 text-right">
                     Due
                   </th>
-
+                  <th className="px-3 py-4 text-center w-[160px]">
+  Payment Mode
+</th>
                   <th className="px-5 py-4 text-center">
                     Status
                   </th>
 
-                  <th className="px-5 py-4 text-center">
-                    Actions
-                  </th>
+                 <th className="w-[180px] px-6 py-4 text-center whitespace-nowrap">
+  Actions
+</th>
 
                 </tr>
               </thead>
 
               <tbody>
 
-                {invoices.map(
+                {currentInvoices.map(
                   (inv) => (
                     <tr
                       key={
@@ -781,20 +1320,20 @@ const DashboardPage = () => {
                       className="border-b hover:bg-gray-50 transition"
                     >
 
-                      <td className="px-5 py-4 font-semibold">
+                     <td className="px-5 py-4 font-semibold whitespace-nowrap">
                         {
                           inv.invoiceNumber
                         }
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 whitespace-nowrap">
                         {
                           inv.customer
                             ?.name
                         }
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 whitespace-nowrap">
                         {formatDate(
                           inv.date
                         )}
@@ -819,6 +1358,12 @@ const DashboardPage = () => {
                             0
                         )}
                       </td>
+                   <td className="px-5 py-4 text-center">
+  <span className="font-medium text-gray-700">
+    {inv.paymentMethod || "-"}
+  </span>
+</td>
+
 
                       {/* STATUS */}
 
@@ -843,7 +1388,7 @@ const DashboardPage = () => {
                               inv._id
                             ]
                           }
-                          className={`input text-sm font-medium ${
+                       className={`input text-sm font-medium h-[44px] w-[130px] ${
                             inv.status ===
                             "paid"
                               ? "text-green-600 bg-green-50"
@@ -854,6 +1399,7 @@ const DashboardPage = () => {
                                 "cancelled"
                               ? "text-red-600"
                               : "text-orange-500"
+                              
                           }`}
                         >
 
@@ -922,8 +1468,8 @@ const DashboardPage = () => {
 
                       {/* ACTIONS */}
 
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-center gap-2">
+              <td className="px-5 py-4 min-w-[150px]">
+                        <div className="flex items-center justify-center gap-1">
 
                           <button
                             onClick={() =>
@@ -932,7 +1478,7 @@ const DashboardPage = () => {
                               )
                             }
                             title="Preview Invoice"
-                            className="w-10 h-10 rounded-xl hover:bg-indigo-50 text-indigo-600 transition-all duration-200 flex items-center justify-center"
+                            className="w-8 h-8 rounded-xl hover:bg-indigo-50 text-indigo-600 transition-all duration-200 flex items-center justify-center"
                           >
                             <Eye
                               size={
@@ -947,7 +1493,7 @@ const DashboardPage = () => {
                                 inv
                               )
                             }
-                            className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center"
+                            className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center"
                           >
                             <Download
                               size={
@@ -962,7 +1508,7 @@ const DashboardPage = () => {
                                 inv
                               )
                             }
-                            className="w-10 h-10 rounded-xl hover:bg-red-50 text-red-500 flex items-center justify-center"
+                            className="w-8 h-8 rounded-xl hover:bg-red-50 text-red-500 flex items-center justify-center"
                           >
                             <Trash2
                               size={
@@ -981,220 +1527,244 @@ const DashboardPage = () => {
               </tbody>
 
             </table>
+            
+<div className="flex justify-center items-center gap-4 py-6 border-t">
 
+  <button
+    disabled={currentPage === 1}
+    onClick={() =>
+      setCurrentPage(
+        currentPage - 1
+      )
+    }
+    className="px-4 py-2 rounded-xl border disabled:opacity-40"
+  >
+    Prev
+  </button>
+
+  <span className="font-medium text-gray-700">
+    Page {currentPage} of {totalPages}
+  </span>
+
+  <button
+    disabled={
+      currentPage === totalPages
+    }
+    onClick={() =>
+      setCurrentPage(
+        currentPage + 1
+      )
+    }
+    className="px-4 py-2 rounded-xl bg-indigo-600 text-white disabled:opacity-40"
+  >
+    Next
+  </button>
+
+</div>
           </div>
         )}
       </div>
 
-      {/* PAYMENT MODAL */}
+     {/* PAYMENT MODAL */}
 
-      {paymentModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+{paymentModal && (
+  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
 
-          <div className="bg-white rounded-[32px] p-7 w-full max-w-md shadow-2xl border border-gray-100">
+    <div className="bg-white rounded-[32px] p-7 w-full max-w-md shadow-2xl border border-gray-100">
 
-            <div className="mb-6">
+      <div className="mb-6">
 
-              <h2 className="text-3xl font-bold text-gray-900">
-                {newStatus ===
-                "paid"
-                  ? "Complete Payment"
-                  : "Update Payment"}
-              </h2>
+        <h2 className="text-3xl font-bold text-gray-900">
+          {newStatus === "paid"
+            ? "Complete Payment"
+            : "Update Payment"}
+        </h2>
 
-              <p className="text-sm text-gray-500 mt-1">
-                {
-                  selectedInvoice?.invoiceNumber
-                }
-              </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {selectedInvoice?.invoiceNumber}
+        </p>
 
+      </div>
+
+      <div className="space-y-5">
+
+        {/* Invoice Total */}
+        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500 font-medium">
+              Invoice Total
+            </span>
+
+            <strong className="text-xl text-gray-900">
+              {formatCurrency(
+                selectedInvoice?.total || 0
+              )}
+            </strong>
+          </div>
+        </div>
+
+        {/* Installment Tracking */}
+        {selectedInvoice?.amountPaid > 0 && (
+          <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+
+            <div className="flex justify-between mb-2">
+              <span>Already Paid</span>
+
+              <strong>
+                {formatCurrency(
+                  selectedInvoice?.amountPaid || 0
+                )}
+              </strong>
             </div>
 
-            <div className="space-y-5">
+            <div className="flex justify-between">
+              <span>Remaining Due</span>
 
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-
-                <div className="flex justify-between items-center">
-
-                  <span className="text-gray-500 font-medium">
-                    Invoice Total
-                  </span>
-
-                  <strong className="text-xl text-gray-900">
-                    {formatCurrency(
-                      selectedInvoice?.total ||
-                        0
-                    )}
-                  </strong>
-
-                </div>
-
-              </div>
-
-              <div>
-
-                <label className="label">
-                  {newStatus ===
-                  "paid"
-                    ? "Remaining Amount"
-                    : "Amount Received"}
-                </label>
-
-                <input
-                  type="number"
-                  className="input h-14 text-lg"
-                  value={
-                    partialAmount
-                  }
-                  onChange={(e) =>
-                    setPartialAmount(
-                      e.target.value
-                    )
-                  }
-                />
-
-              </div>
-
-              <div>
-
-                <label className="label">
-                  Payment Method
-                </label>
-
-                <select
-                  className="input h-14"
-                  value={
-                    paymentMethod
-                  }
-                  onChange={(e) =>
-                    setPaymentMethod(
-                      e.target.value
-                    )
-                  }
-                >
-                  <option value="Cash">
-                    Cash
-                  </option>
-
-                  <option value="UPI">
-                    UPI
-                  </option>
-
-                  <option value="Card">
-                    Card
-                  </option>
-
-                  <option value="Bank Transfer">
-                    Bank Transfer
-                  </option>
-
-                  <option value="Cheque">
-                    Cheque
-                  </option>
-
-                </select>
-
-              </div>
-
-              <div
-                className={`rounded-2xl p-5 border ${
-                  newStatus ===
-                  "paid"
-                    ? "bg-green-50 border-green-100"
-                    : "bg-red-50 border-red-100"
-                }`}
-              >
-
-                <div className="flex justify-between items-center">
-
-                  <span
-                    className={`font-semibold ${
-                      newStatus ===
-                      "paid"
-                        ? "text-green-600"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {newStatus ===
-                    "paid"
-                      ? "After Payment Due"
-                      : "Remaining Due"}
-                  </span>
-
-                  <strong
-                    className={`text-xl ${
-                      newStatus ===
-                      "paid"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {newStatus ===
-                    "paid"
-                      ? formatCurrency(
-                          0
-                        )
-                      : formatCurrency(
-                          (selectedInvoice?.total ||
-                            0) -
-                            Number(
-                              partialAmount ||
-                                0
-                            )
-                        )}
-                  </strong>
-
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-
-                <button
-                  onClick={() =>
-                    setPaymentModal(
-                      false
-                    )
-                  }
-                  className="h-14 rounded-2xl border border-gray-200 font-semibold text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleFinalStatusUpdate(
-                      selectedInvoice,
-
-                      newStatus,
-
-                      newStatus ===
-                      "paid"
-                        ? selectedInvoice.total
-                        : Number(
-                            partialAmount
-                          ),
-
-                      paymentMethod
-                    )
-                  }
-                  className="h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition shadow-lg shadow-indigo-200"
-                >
-                  {newStatus ===
-                  "paid"
-                    ? "Complete Payment"
-                    : "Update Payment"}
-                </button>
-
-              </div>
-
+              <strong>
+                {formatCurrency(
+                  selectedInvoice?.dueAmount || 0
+                )}
+              </strong>
             </div>
+
+          </div>
+        )}
+
+        {/* Amount */}
+        <div>
+
+          <label className="label">
+            {selectedInvoice?.amountPaid > 0
+              ? "Add Payment"
+              : "Amount Received"}
+          </label>
+
+          <input
+            type="number"
+            min="1"
+            max={
+              selectedInvoice?.dueAmount ||
+              selectedInvoice?.total
+            }
+            className="input h-14 text-lg"
+            value={partialAmount}
+            onChange={(e) =>
+              setPartialAmount(
+                e.target.value
+              )
+            }
+          />
+
+        </div>
+
+        {/* Payment Method */}
+        <div>
+
+          <label className="label">
+            Payment Method
+          </label>
+
+          <select
+            className="input h-14"
+            value={paymentMethod}
+            onChange={(e) =>
+              setPaymentMethod(
+                e.target.value
+              )
+            }
+          >
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="Card">Card</option>
+            <option value="Bank Transfer">
+              Bank Transfer
+            </option>
+            <option value="Cheque">Cheque</option>
+  <option value="other">other</option>
+          </select>
+
+        </div>
+
+        {/* Due Preview */}
+        <div
+          className={`rounded-2xl p-5 border ${
+            newStatus === "paid"
+              ? "bg-green-50 border-green-100"
+              : "bg-red-50 border-red-100"
+          }`}
+        >
+
+          <div className="flex justify-between items-center">
+
+            <span
+              className={`font-semibold ${
+                newStatus === "paid"
+                  ? "text-green-600"
+                  : "text-red-500"
+              }`}
+            >
+              {newStatus === "paid"
+                ? "After Payment Due"
+                : "Remaining Due"}
+            </span>
+
+          <strong
+  className={`text-xl ${
+    Number(partialAmount || 0) >=
+    (selectedInvoice?.dueAmount || 0)
+      ? "text-green-600"
+      : "text-red-600"
+  }`}
+>
+  {formatCurrency(
+    Math.max(
+      (selectedInvoice?.dueAmount || 0) -
+        Number(partialAmount || 0),
+      0
+    )
+  )}
+</strong>
 
           </div>
 
         </div>
-      )}
 
+        {/* Buttons */}
+        <div className="grid grid-cols-2 gap-4 pt-2">
+
+          <button
+            onClick={() =>
+              setPaymentModal(false)
+            }
+            className="h-14 rounded-2xl border border-gray-200 font-semibold text-gray-700 hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={() =>
+            handleFinalStatusUpdate(
+  selectedInvoice,
+  newStatus,
+  Number(partialAmount),
+  paymentMethod
+)
+            }
+            className="h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition shadow-lg shadow-indigo-200"
+          >
+            {newStatus === "paid"
+              ? "Complete Payment"
+              : "Update Payment"}
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
       {/* DELETE MODAL */}
 
       <ConfirmModal
@@ -1213,6 +1783,7 @@ const DashboardPage = () => {
         type="error"
       />
 
+    </div>
     </div>
   );
 };

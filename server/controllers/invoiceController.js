@@ -43,7 +43,7 @@ const createInvoice =
         taxRate = 0,
 
         discountRate = 0,
-
+         roundOff = 0,
         notes,
 
         date,
@@ -62,15 +62,13 @@ const createInvoice =
       // ========================================
       // CALCULATE
       // ========================================
-
-      const calculated =
-        calculateInvoice({
-          items,
-
-          taxRate,
-
-          discountRate,
-        });
+const calculated =
+  calculateInvoice({
+    items,
+    taxRate,
+    discountRate,
+    roundOff,
+  });
 
       // ========================================
       // PAYMENT
@@ -108,16 +106,13 @@ const createInvoice =
 
       // PAID
 
-      if (
-        finalStatus ===
-        "paid"
-      ) {
-        finalAmountPaid =
-          calculated.total;
+     if (
+  finalStatus ===
+  "paid"
+) {
 
-        finalDueAmount = 0;
-      }
-
+  finalDueAmount = 0;
+}
       // PARTIAL
 
       if (
@@ -172,51 +167,127 @@ const createInvoice =
       // ========================================
 
   // 1. CREATE INVOICE
+const paymentHistory = [];
+
+if (finalAmountPaid > 0) {
+  paymentHistory.push({
+    amount: finalAmountPaid,
+    method: finalPaymentMethod,
+    date: new Date(),
+  });
+}
+
 const invoice = await Invoice.create({
   userId: req.user._id,
+
   invoiceNumber:
-    await generateInvoiceNumber(),
+    await generateInvoiceNumber(
+      req.user._id
+    ),
+
   customer,
   items: calculated.items,
   subtotal: calculated.subtotal,
+
   taxRate: calculated.taxRate,
   taxPercentage:
     calculated.taxPercentage,
+
   taxAmount:
     calculated.taxAmount,
+
   discountRate:
     calculated.discountRate,
+
   discountPercentage:
     calculated.discountPercentage,
+
   discountAmount:
     calculated.discountAmount,
+
   total: calculated.total,
+
   notes,
+
   date: date || Date.now(),
   dueDate: dueDate || null,
+
   status: finalStatus,
+
   paymentMethod:
     finalPaymentMethod,
+
   amountPaid:
     finalAmountPaid,
+
   dueAmount:
     finalDueAmount,
+
+  roundOff:
+    calculated.roundOff,
+
+  paymentHistory
 });
 
 
-// 2. UPDATE PRODUCTS
-for (const item of items) {
-  const product = await Product.findOne({
-    name: item.name,
-    createdBy: req.user._id,
-  });
+// ========================================
+// 2. MERGE DUPLICATE PRODUCT QTY
+// ========================================
 
-  if (!product) continue;
+const mergedQty = {};
 
-  const soldQty = Number(item.qty);
+for (const item of calculated.items) {
+  mergedQty[item.name] =
+    (mergedQty[item.name] || 0) +
+    Number(item.qty);
+}
 
+// ========================================
+// 3. VALIDATE STOCK
+// ========================================
+
+for (const item of calculated.items) {
+  const product =
+    await Product.findOne({
+      name: item.name,
+      createdBy: req.user._id,
+    });
+
+  if (!product) {
+    return res.status(404).json({
+      message: `${item.name} not found`,
+    });
+  }
+
+if (
+  product.stock <
+  mergedQty[item.name]
+) {
+    return res.status(400).json({
+      message:
+        `${item.name} has only ${product.stock} ${product.unit} left in stock`
+    });
+  }
+}
+
+// ========================================
+// 3. UPDATE PRODUCTS AFTER VALIDATION
+// ========================================
+
+for (const item of calculated.items) {
+  const product =
+    await Product.findOne({
+      name: item.name,
+      createdBy: req.user._id,
+    });
+
+  const soldQty =
+    Number(item.qty);
+
+  // Deduct ONCE only
   product.stock =
-    Number(product.stock) - soldQty;
+    Number(product.stock) -
+    soldQty;
 
   if (product.stock < 0) {
     product.stock = 0;
@@ -224,34 +295,83 @@ for (const item of items) {
 
   product.totalValue =
     Number(product.stock) *
-    Number(product.sellingPrice);
+    Number(
+      product.finalSellingPrice ||
+      product.sellingPrice
+    );
 
   product.expectedProfit =
-  Number(product.stock) *
-  Number(product.profitPerUnit); 
-  
-  // ACTUAL SELL PRICE FROM INVOICE
-const actualSellPrice =
-  Number(item.price);
+    Number(product.stock) *
+    Number(
+      product.profitPerUnit
+    );
 
-// REAL PROFIT
-const profitPerItem =
-  actualSellPrice -
-  Number(product.costPrice);
+  const finalRevenue =
+    Number(item.finalRevenue || 0);
 
-// TOTAL REVENUE
-product.totalSales =
-  Number(product.totalSales || 0) +
-  soldQty * actualSellPrice;
+  const totalCost =
+    soldQty *
+    Number(product.costPrice);
 
-// NET PROFIT
-product.totalSalesProfit =
-  Number(product.totalSalesProfit || 0) +
-  soldQty * profitPerItem;
+  const finalProfit =
+    finalRevenue - totalCost;
+
+  const itemShare =
+    calculated.subtotal > 0
+      ? finalRevenue /
+        calculated.subtotal
+      : 0;
+
+  const collectedAmount =
+    finalRevenue +
+    (
+      Number(calculated.roundOff || 0)
+      * itemShare
+    );
+
+  const paymentRatio =
+    calculated.total > 0
+      ? finalAmountPaid /
+        calculated.total
+      : 0;
+
+  const paidRevenue =
+    finalRevenue *
+    paymentRatio;
+
+  const paidCollected =
+    collectedAmount *
+    paymentRatio;
+
+  const paidProfit =
+    finalProfit *
+    paymentRatio;
+
+  product.totalSales =
+    Number(
+      product.totalSales || 0
+    ) + paidRevenue;
+
+  product.totalCollected =
+    Number(
+      product.totalCollected || 0
+    ) + paidCollected;
+
+  product.totalSalesProfit =
+    Number(
+      product.totalSalesProfit || 0
+    ) + paidProfit;
+
+  product.totalUnitsSold =
+    Number(
+      product.totalUnitsSold || 0
+    ) + soldQty;
+
+  product.lastSoldAt =
+    new Date();
 
   await product.save();
 }
-
 
 // 3. RESPONSE
 res.status(201).json({
@@ -274,15 +394,14 @@ const getInvoices =
     next
   ) => {
     try {
-
-      const {
-        status,
-        search,
-        customer,
-        fromDate,
-        toDate,
-      } = req.query;
-
+const {
+  status,
+  search,
+  customer,
+  paymentMethod,
+  fromDate,
+  toDate,
+} = req.query;
       let query = {
         userId: req.user._id,
       };
@@ -313,7 +432,13 @@ const getInvoices =
           $options: "i",
         };
       }
-
+if (
+  paymentMethod &&
+  paymentMethod !== "all"
+) {
+  query.paymentMethod =
+    paymentMethod;
+}
       // DATE FILTER
 
       if (
@@ -385,7 +510,89 @@ const getInvoiceById =
       next(err);
     }
   };
+const syncProductPaymentStats =
+  async (
+    invoice,
+    userId,
+    oldAmountPaid = 0
+  ) => {
+    const newRatio =
+      invoice.total > 0
+        ? invoice.amountPaid /
+          invoice.total
+        : 0;
 
+    const oldRatio =
+      invoice.total > 0
+        ? oldAmountPaid /
+          invoice.total
+        : 0;
+
+    for (const item of invoice.items) {
+      const product =
+        await Product.findOne({
+          name: item.name,
+          createdBy: userId,
+        });
+
+      if (!product) continue;
+
+      const finalRevenue =
+        Number(
+          item.finalRevenue || 0
+        );
+
+      const totalCost =
+        Number(item.qty) *
+        Number(product.costPrice);
+
+      const finalProfit =
+        finalRevenue - totalCost;
+
+      const itemShare =
+        invoice.subtotal > 0
+          ? finalRevenue /
+            invoice.subtotal
+          : 0;
+
+      const collectedAmount =
+        finalRevenue +
+        (
+          Number(
+            invoice.roundOff || 0
+          ) * itemShare
+        );
+
+      const revenueDelta =
+        finalRevenue *
+        (newRatio - oldRatio);
+
+      const collectedDelta =
+        collectedAmount *
+        (newRatio - oldRatio);
+
+      const profitDelta =
+        finalProfit *
+        (newRatio - oldRatio);
+
+      product.totalSales =
+        Number(
+          product.totalSales || 0
+        ) + revenueDelta;
+
+      product.totalCollected =
+        Number(
+          product.totalCollected || 0
+        ) + collectedDelta;
+
+      product.totalSalesProfit =
+        Number(
+          product.totalSalesProfit || 0
+        ) + profitDelta;
+
+      await product.save();
+    }
+  };
 // ========================================
 // UPDATE STATUS
 // ========================================
@@ -413,7 +620,8 @@ const updateInvoiceStatus =
               "Invoice not found",
           });
       }
-
+const oldAmountPaid =
+  invoice.amountPaid || 0;
       const {
         status,
 
@@ -438,50 +646,86 @@ if (status === "cancelled") {
 
     if (!product) continue;
 
-    const returnedQty =
-      Number(item.qty);
+const returnedQty =
+  Number(item.qty);
 
-    const returnedAmount =
-      Number(item.price);
+const returnedRevenue =
+  Number(item.finalRevenue || 0);
 
-    // ADD STOCK BACK
-    product.stock =
-      Number(product.stock) +
-      returnedQty;
+const returnedUnitPrice =
+  Number(
+    product.finalSellingPrice ||
+    product.sellingPrice
+  );
 
-    // UPDATE INVENTORY VALUE
-    product.totalValue =
-      Number(product.stock) *
-      Number(product.sellingPrice);
-     product.expectedProfit =
-     Number(product.stock) *
-    Number(product.profitPerUnit);
-    // REMOVE SALES REVENUE
-    product.totalSales =
-      Number(product.totalSales || 0) -
-      returnedQty * returnedAmount;
+const paymentRatio =
+  invoice.total > 0
+    ? invoice.amountPaid / invoice.total
+    : 0;
 
-    // REMOVE PROFIT
-    const profitPerItem =
-      returnedAmount -
-      Number(product.costPrice);
+const refundedCollected =
+  returnedRevenue * paymentRatio;
 
-    product.totalSalesProfit =
-      Number(product.totalSalesProfit || 0) -
-      returnedQty * profitPerItem;
+const totalCost =
+  returnedQty *
+  Number(product.costPrice);
 
-    // PREVENT NEGATIVE VALUES
-    if (product.totalSales < 0) {
-      product.totalSales = 0;
-    }
+const refundedProfit =
+  returnedRevenue - totalCost;
 
-    if (product.totalSalesProfit < 0) {
-      product.totalSalesProfit = 0;
-    }
+// RESTORE STOCK
+product.stock =
+  Number(product.stock) +
+  returnedQty;
 
-    await product.save();
+// INVENTORY VALUE
+product.totalValue =
+  Number(product.stock) *
+  returnedUnitPrice;
+
+// EXPECTED PROFIT
+product.expectedProfit =
+  Number(product.stock) *
+  Number(product.profitPerUnit);
+// REVERSE SALES
+product.totalSales =
+  Number(product.totalSales || 0) -
+  returnedRevenue;
+
+// REVERSE CASH
+product.totalCollected =
+  Number(product.totalCollected || 0) -
+  refundedCollected;
+
+// REVERSE PROFIT
+product.totalSalesProfit =
+  Number(product.totalSalesProfit || 0) -
+  refundedProfit;
+
+// PREVENT NEGATIVE VALUES
+if (product.totalSales < 0) {
+  product.totalSales = 0;
+}
+
+if (product.totalCollected < 0) {
+  product.totalCollected = 0;
+}
+
+if (product.totalSalesProfit < 0) {
+  product.totalSalesProfit = 0;
+}
+
+await product.save();
   }
-
+if (invoice.amountPaid > 0) {
+  invoice.paymentHistory.push({
+    amount: -Number(
+      invoice.amountPaid
+    ),
+    method: "Refund",
+    date: new Date(),
+  });
+}
   // UPDATE INVOICE
   invoice.status = "cancelled";
 
@@ -503,91 +747,114 @@ if (status === "cancelled") {
       // PAID
       // ========================================
 
-      if (
-        status === "paid"
-      ) {
-        invoice.status =
-          "paid";
+     if (status === "paid") {
+  const paid =
+    Number(amountPaid || 0);
 
-        invoice.paymentMethod =
-          paymentMethod ||
-          invoice.paymentMethod;
+  const totalPaid =
+    Number(invoice.amountPaid || 0) +
+    paid;
 
-        invoice.amountPaid =
-          invoice.total;
+  invoice.paymentHistory.push({
+    amount: paid,
+    method: paymentMethod,
+    date: new Date(),
+  });
 
-        invoice.dueAmount = 0;
+  invoice.amountPaid =
+    Math.min(
+      totalPaid,
+      invoice.total
+    );
 
-        await invoice.save();
+  invoice.dueAmount =
+    Math.max(
+      invoice.total -
+        invoice.amountPaid,
+      0
+    );
 
-        return res
-          .status(200)
-          .json({
-            success: true,
+  invoice.status =
+    invoice.dueAmount === 0
+      ? "paid"
+      : "partial";
 
-            invoice,
-          });
-      }
+  invoice.paymentMethod =
+    paymentMethod ||
+    invoice.paymentMethod;
 
-      // ========================================
-      // PARTIAL
-      // ========================================
+  await invoice.save();
 
-      if (
-        status ===
-        "partial"
-      ) {
-        const paid =
-          Number(
-            amountPaid || 0
-          );
+  await syncProductPaymentStats(
+    invoice,
+    req.user._id,
+    oldAmountPaid
+  );
 
-        if (paid <= 0) {
-          return res
-            .status(400)
-            .json({
-              message:
-                "Amount paid must be greater than 0",
-            });
-        }
+  return res.status(200).json({
+    success: true,
+    invoice,
+  });
+}
 
-        if (
-          paid >=
-          invoice.total
-        ) {
-          invoice.status =
-            "paid";
+// ========================================
+// PARTIAL
+// ========================================
 
-          invoice.amountPaid =
-            invoice.total;
+if (status === "partial") {
+  const paid =
+    Number(amountPaid || 0);
 
-          invoice.dueAmount = 0;
-        } else {
-          invoice.status =
-            "partial";
+  if (paid <= 0) {
+    return res.status(400).json({
+      message:
+        "Amount paid must be greater than 0",
+    });
+  }
 
-          invoice.amountPaid =
-            paid;
+  const totalPaid =
+    Number(invoice.amountPaid || 0) +
+    paid;
 
-          invoice.dueAmount =
-            invoice.total -
-            paid;
-        }
+  invoice.paymentHistory.push({
+    amount: paid,
+    method: paymentMethod,
+    date: new Date(),
+  });
 
-        invoice.paymentMethod =
-          paymentMethod;
+  if (totalPaid >= invoice.total) {
+    invoice.status = "paid";
+    invoice.amountPaid =
+      invoice.total;
+    invoice.dueAmount = 0;
+  } else {
+    invoice.status =
+      "partial";
 
-        await invoice.save();
+    invoice.amountPaid =
+      totalPaid;
 
-        return res
-          .status(200)
-          .json({
-            success: true,
+    invoice.dueAmount =
+      invoice.total -
+      totalPaid;
+  }
 
-            invoice,
-          });
-      }
+  invoice.paymentMethod =
+    paymentMethod;
 
+  await invoice.save();
+
+  await syncProductPaymentStats(
+    invoice,
+    req.user._id,
+    oldAmountPaid
+  );
+
+  return res.status(200).json({
+    success: true,
+    invoice,
+  });
+}
       // ========================================
       // PENDING
       // ========================================
@@ -609,7 +876,11 @@ if (status === "cancelled") {
       }
 
       await invoice.save();
-
+await syncProductPaymentStats(
+  invoice,
+  req.user._id,
+  oldAmountPaid
+);
       res.status(200).json({
         success: true,
 
@@ -661,11 +932,13 @@ const deleteInvoice =
       next(err);
     }
   };
-
+const round2 = (num) =>
+  Math.round(
+    (num + Number.EPSILON) * 100
+  ) / 100;
 // ========================================
 // RECALCULATE
 // ========================================
-
 const recalculateInvoices =
   async (
     req,
@@ -673,51 +946,151 @@ const recalculateInvoices =
     next
   ) => {
     try {
+
       const invoices =
         await Invoice.find({
           userId:
             req.user._id,
         });
 
+      let updatedCount = 0;
+
+
+
+
+
+      
+
       for (const invoice of invoices) {
+// FIX OLD ITEM PRICES
+// ========================================
+// FIX OLD BROKEN ITEM PRICES
+// ========================================
+for (const item of invoice.items) {
+
+  // OLD BROKEN INVOICES
+  // HAD finalTotal SAVED AS price
+
+  if (
+    item.finalTotal &&
+    Number(item.finalTotal) > 0
+  ) {
+
+    item.price =
+      round2(
+        Number(item.finalTotal) /
+        Number(item.qty || 1)
+      );
+  }
+}
+        // ========================================
+        // RECALCULATE
+        // ========================================
+
         const recalculated =
           calculateInvoice({
             items:
               invoice.items,
 
             taxRate:
-              invoice.taxRate,
+              invoice.taxRate || 0,
 
             discountRate:
-              invoice.discountRate,
+              invoice.discountRate || 0,
           });
+
+        // ========================================
+        // UPDATE TOTALS
+        // ========================================
+
+        invoice.items =
+          recalculated.items;
 
         invoice.subtotal =
           recalculated.subtotal;
 
+        invoice.discountAmount =
+          recalculated.discountAmount;
+
         invoice.taxAmount =
           recalculated.taxAmount;
 
-        invoice.discountAmount =
-          recalculated.discountAmount;
+        invoice.roundOff =
+          recalculated.roundOff;
 
         invoice.total =
           recalculated.total;
 
+        // ========================================
+        // PAYMENT LOGIC
+        // ========================================
+
+        if (
+          invoice.status ===
+          "pending"
+        ) {
+
+          invoice.amountPaid = 0;
+
+          invoice.dueAmount =
+            invoice.total;
+        }
+
+        else if (
+          invoice.status ===
+          "partial"
+        ) {
+
+          invoice.dueAmount =
+            Math.max(
+              invoice.total -
+              Number(
+                invoice.amountPaid || 0
+              ),
+              0
+            );
+        }
+
+        else if (
+          invoice.status ===
+          "paid"
+        ) {
+
+          // KEEP CUSTOMER ENTERED PAYMENT
+
+          invoice.dueAmount = 0;
+        }
+
+        else if (
+          invoice.status ===
+          "cancelled"
+        ) {
+
+          invoice.amountPaid = 0;
+
+          invoice.dueAmount = 0;
+        }
+
+        // ========================================
+        // SAVE
+        // ========================================
+
         await invoice.save();
+
+        updatedCount++;
       }
 
       res.status(200).json({
         success: true,
 
         message:
-          "Invoices recalculated",
+          `${updatedCount} invoices recalculated successfully`,
       });
+
     } catch (err) {
       next(err);
     }
   };
-
 // ========================================
 // DOWNLOAD PDF
 // ========================================

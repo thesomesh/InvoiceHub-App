@@ -8,7 +8,6 @@ import { productAPI } from "../services/productAPI";
 
 const defaultCategories = [
   "General",
-  "Grocery",
 ];
 
 const defaultUnits = [
@@ -17,7 +16,12 @@ const defaultUnits = [
   "box",
   "liter",
 ];
-
+const formatCurrency = (
+  value
+) =>
+  `₹${Number(
+    value || 0
+  ).toFixed(2)}`;
 const InventoryPage = () => {
   const [products, setProducts] =
     useState([]);
@@ -49,8 +53,9 @@ const InventoryPage = () => {
       costPrice: "",
 
       sellingPrice: "",
-
-      minimumStock: 5,
+      discountPercentage: "",
+finalSellingPrice: "",
+minimumStock: 5,
     });
 
   const [editingId, setEditingId] =
@@ -163,15 +168,69 @@ const InventoryPage = () => {
   // HANDLE CHANGE
   // ========================================
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
-      [e.target.name]:
-        e.target.value,
-    });
+  let updated = {
+    ...form,
+    [name]: value,
   };
 
+  if (
+    name === "sellingPrice" ||
+    name === "discountPercentage"
+  ) {
+    const selling =
+      Number(
+        name === "sellingPrice"
+          ? value
+          : updated.sellingPrice
+      );
+
+    const discount =
+      Number(
+        name === "discountPercentage"
+          ? value
+          : updated.discountPercentage
+      );
+
+    updated.finalSellingPrice =
+      (
+        selling -
+        (selling * discount) / 100
+      ).toFixed(2);
+  }
+
+  setForm(updated);
+};
+const handleFinalSellingPriceChange = (e) => {
+  const finalPrice = Number(
+    e.target.value || 0
+  );
+
+  const originalPrice = Number(
+    form.sellingPrice || 0
+  );
+
+  let discount = 0;
+
+  if (originalPrice > 0) {
+    discount =
+      (
+        (
+          originalPrice -
+          finalPrice
+        ) / originalPrice
+      ) * 100;
+  }
+
+  setForm({
+    ...form,
+    finalSellingPrice: finalPrice,
+    discountPercentage:
+      discount.toFixed(2),
+  });
+};
   // ========================================
   // FILTER CHANGE
   // ========================================
@@ -216,7 +275,7 @@ const InventoryPage = () => {
       costPrice: "",
 
       sellingPrice: "",
-
+      discountPercentage: "",
       minimumStock: 5,
     });
 
@@ -226,25 +285,34 @@ const InventoryPage = () => {
   // ========================================
   // CALCULATIONS
   // ========================================
+const originalSellingPrice =
+  Number(
+    form.sellingPrice || 0
+  );
 
-  const totalValue =
-    Number(form.stock || 0) *
-    Number(
-      form.sellingPrice || 0
-    );
+const discountPercentage =
+  Number(
+    form.discountPercentage || 0
+  );
 
-  const profitPerUnit =
-    Number(
-      form.sellingPrice || 0
-    ) -
-    Number(
-      form.costPrice || 0
-    );
+const finalSellingPrice =
+  originalSellingPrice -
+  (
+    originalSellingPrice *
+    discountPercentage
+  ) / 100;
 
-  const expectedProfit =
-    profitPerUnit *
-    Number(form.stock || 0);
+const totalValue =
+  Number(form.stock || 0) *
+  finalSellingPrice;
 
+const profitPerUnit =
+  finalSellingPrice -
+  Number(form.costPrice || 0);
+
+const expectedProfit =
+  profitPerUnit *
+  Number(form.stock || 0);
   // ========================================
   // SUBMIT
   // ========================================
@@ -291,10 +359,14 @@ const InventoryPage = () => {
         ),
 
         sellingPrice:
-          Number(
-            form.sellingPrice
-          ),
+  Number(form.sellingPrice),
 
+discountPercentage:
+  Number(
+    form.discountPercentage || 0
+  ),
+
+finalSellingPrice,
         minimumStock:
           Number(
             form.minimumStock
@@ -364,7 +436,10 @@ const InventoryPage = () => {
 
       sellingPrice:
         product.sellingPrice,
-
+        discountPercentage:
+  product.discountPercentage || 0,
+finalSellingPrice:
+  product.finalSellingPrice,
       minimumStock:
         product.minimumStock,
     });
@@ -393,7 +468,7 @@ const InventoryPage = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* SUMMARY */}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <div className="card p-4">
           <p>Total Products</p>
 
@@ -408,21 +483,20 @@ const InventoryPage = () => {
           <p>Inventory Value</p>
 
           <h2 className="text-2xl font-bold">
-            ₹
-            {
-              summary?.inventoryValue
-            }
+          
+           {formatCurrency(
+  summary?.inventoryValue
+)}
           </h2>
         </div>
 
         <div className="card p-4">
-          <p>Expected Profit</p>
+          <p>Total Expected Profit</p>
 
           <h2 className="text-2xl font-bold">
-            ₹
-            {
-              summary?.expectedProfit
-            }
+           {formatCurrency(
+  summary?.expectedProfit
+)}
           </h2>
         </div>
 
@@ -430,12 +504,19 @@ const InventoryPage = () => {
           <p>Sales Profit</p>
 
           <h2 className="text-2xl font-bold">
-            ₹
-            {
-              summary?.totalSalesProfit
-            }
+           {formatCurrency(
+  summary?.totalSalesProfit
+)}
           </h2>
         </div>
+        <div className="card p-4">
+  <p>Cash Collected</p>
+  <h2 className="text-2xl font-bold">
+    {formatCurrency(
+      summary?.cashCollected
+    )}
+  </h2>
+</div>
       </div>
 
       {/* FORM */}
@@ -449,7 +530,7 @@ const InventoryPage = () => {
 
   <form
     onSubmit={handleSubmit}
-    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start"
   >
     {/* PRODUCT NAME */}
 
@@ -618,7 +699,42 @@ const InventoryPage = () => {
         required
       />
     </div>
+<div>
+  <label className="label">
+    Discount %
+  </label>
 
+  <input
+    type="number"
+    name="discountPercentage"
+    className="input"
+    placeholder="Optional"
+    value={
+      form.discountPercentage
+    }
+    onChange={handleChange}
+  />
+</div>
+
+
+<div>
+  <label className="label">
+    Final Selling Price
+  </label>
+
+<input
+  type="number"
+  name="finalSellingPrice"
+  className="input"
+  value={
+    form.finalSellingPrice ||
+    finalSellingPrice
+  }
+  onChange={
+    handleFinalSellingPriceChange
+  }
+/>
+</div>  
     {/* INVENTORY VALUE */}
 
     <div>
@@ -629,7 +745,9 @@ const InventoryPage = () => {
       <input
         type="text"
         className="input"
-        value={`₹${totalValue}`}
+        value={formatCurrency(
+          totalValue
+        )}
         readOnly
       />
     </div>
@@ -670,7 +788,7 @@ const InventoryPage = () => {
 
     {/* BUTTONS */}
 
-    <div className="lg:col-span-4 flex gap-3 pt-2">
+   <div className="lg:col-span-4 flex justify-center gap-3 pt-4">
       <button
         type="submit"
         className="btn-primary"
@@ -793,8 +911,8 @@ const InventoryPage = () => {
 {/* TABLE */}
 
 <div className="card overflow-hidden">
-  <div className="overflow-x-auto">
-    <table className="w-full">
+ <div className="overflow-x-auto pb-2">
+  <table className="min-w-[1450px] w-full">
       <thead>
         <tr>
           <th className="px-5 py-4 text-left">
@@ -812,7 +930,13 @@ const InventoryPage = () => {
           <th className="px-5 py-4 text-left">
             Selling Price
           </th>
-
+           <th className="px-5 py-4 text-left">
+            Discount % 
+          </th>
+           <th className="px-5 py-4 text-left">
+             Final Selling Price 
+          </th>
+          
           <th className="px-5 py-4 text-left">
             Inventory Value
           </th>
@@ -842,9 +966,20 @@ const InventoryPage = () => {
               key={product._id}
               className="border-b"
             >
-              <td className="px-5 py-4 font-semibold">
-                {product.name}
-              </td>
+       <td className="px-4 py-4 min-w-[280px] max-w-[320px] align-top">
+  <div
+    className="
+      break-words
+      whitespace-normal
+      leading-6
+      text-sm
+      font-semibold
+    "
+    title={product.name}
+  >
+    {product.name}
+  </div>
+</td>
 
               <td className="px-5 py-4">
                 {product.category}
@@ -856,26 +991,43 @@ const InventoryPage = () => {
               </td>
 
               <td className="px-5 py-4">
-                ₹
-                {
-                  product.sellingPrice
-                }
+             {formatCurrency(
+      product.sellingPrice
+    )}
+              </td>
+  {/* DISCOUNT */}
+
+  <td className="px-5 py-4">
+    {Number(
+      product.discountPercentage || 0
+    ) > 0
+      ? `${product.discountPercentage}%`
+      : "-"}
+  </td>
+
+  {/* FINAL SELL PRICE */}
+
+  <td className="px-5 py-4">
+    {formatCurrency(
+      product.finalSellingPrice ||
+      product.sellingPrice
+    )}
+  </td>
+
+              <td className="px-5 py-4">
+                
+                    {formatCurrency(product.totalValue)}
               </td>
 
               <td className="px-5 py-4">
-                ₹
-                {product.totalValue}
+                 {formatCurrency(
+      product.totalSales
+    )}
               </td>
 
               <td className="px-5 py-4">
-                ₹
-                {product.totalSales}
-              </td>
-
-              <td className="px-5 py-4">
-                ₹
-                {
-                  product.totalSalesProfit
+                  {formatCurrency(
+                  product.totalSalesProfit)
                 }
               </td>
 
@@ -898,7 +1050,7 @@ const InventoryPage = () => {
               </td>
 
               <td className="px-5 py-4">
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-4">
                   <button
                     onClick={() =>
                       handleEdit(

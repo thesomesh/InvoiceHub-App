@@ -8,6 +8,10 @@ const mongoose =
 const itemSchema =
   new mongoose.Schema(
     {
+      // ========================================
+      // PRODUCT NAME
+      // ========================================
+
       name: {
         type: String,
 
@@ -18,6 +22,10 @@ const itemSchema =
 
         trim: true,
       },
+
+      // ========================================
+      // QUANTITY
+      // ========================================
 
       qty: {
         type: Number,
@@ -33,6 +41,10 @@ const itemSchema =
         ],
       },
 
+      // ========================================
+      // UNIT PRICE
+      // ========================================
+
       price: {
         type: Number,
 
@@ -47,6 +59,10 @@ const itemSchema =
         ],
       },
 
+      // ========================================
+      // ORIGINAL TOTAL
+      // ========================================
+
       total: {
         type: Number,
 
@@ -56,6 +72,80 @@ const itemSchema =
           0,
           "Item total cannot be negative",
         ],
+
+        default: 0,
+      },
+
+      // ========================================
+      // ITEM DISCOUNT %
+      // ========================================
+
+      discountRate: {
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+
+        max: 100,
+      },
+
+      // ========================================
+      // ITEM DISCOUNT AMOUNT
+      // ========================================
+
+      discountAmount: {
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+      },
+
+      // ========================================
+      // AFTER ITEM DISCOUNT
+      // ========================================
+
+      finalTotal: {
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+      },
+
+      // ========================================
+      // SHARE OF INVOICE DISCOUNT
+      // ========================================
+
+      invoiceDiscountShare: {
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+      },
+
+      // ========================================
+      // FINAL REVENUE
+      // ========================================
+
+      finalRevenue: {
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+      },
+
+      // ========================================
+      // FINAL PROFIT
+      // ========================================
+
+      profit: {
+        type: Number,
+
+        default: 0,
       },
     },
 
@@ -95,9 +185,6 @@ const invoiceSchema =
         type: String,
 
         required: true,
-
-        unique: true,
-
         trim: true,
       },
 
@@ -195,6 +282,10 @@ const invoiceSchema =
         default: 0,
       },
 
+      // ========================================
+      // TAX
+      // ========================================
+
       taxRate: {
         type: Number,
 
@@ -223,6 +314,10 @@ const invoiceSchema =
         min: 0,
       },
 
+      // ========================================
+      // INVOICE DISCOUNT
+      // ========================================
+
       discountRate: {
         type: Number,
 
@@ -250,6 +345,20 @@ const invoiceSchema =
 
         min: 0,
       },
+
+      // ========================================
+      // ROUND OFF
+      // ========================================
+
+      roundOff: {
+        type: Number,
+
+        default: 0,
+      },
+
+      // ========================================
+      // FINAL TOTAL
+      // ========================================
 
       total: {
         type: Number,
@@ -311,7 +420,16 @@ const invoiceSchema =
         default:
           "Not Paid Yet",
       },
-
+paymentHistory: [
+  {
+    amount: Number,
+    method: String,
+    date: {
+      type: Date,
+      default: Date.now
+    }
+  }
+],
       // ========================================
       // PAYMENT TRACKING
       // ========================================
@@ -360,8 +478,12 @@ const invoiceSchema =
 
 invoiceSchema.pre(
   "save",
+
   function (next) {
+
+    // ========================================
     // PAID
+    // ========================================
 
     if (
       this.status === "paid"
@@ -375,7 +497,9 @@ invoiceSchema.pre(
         new Date();
     }
 
+    // ========================================
     // PENDING
+    // ========================================
 
     if (
       this.status ===
@@ -390,7 +514,9 @@ invoiceSchema.pre(
         "Not Paid Yet";
     }
 
+    // ========================================
     // PARTIAL
+    // ========================================
 
     if (
       this.status ===
@@ -407,7 +533,9 @@ invoiceSchema.pre(
       }
     }
 
+    // ========================================
     // CANCELLED
+    // ========================================
 
     if (
       this.status ===
@@ -421,6 +549,19 @@ invoiceSchema.pre(
     }
 
     next();
+  }
+);
+// ========================================
+// UNIQUE INVOICE NUMBER PER USER
+// ========================================
+
+invoiceSchema.index(
+  {
+    userId: 1,
+    invoiceNumber: 1,
+  },
+  {
+    unique: true,
   }
 );
 

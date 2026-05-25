@@ -1,64 +1,233 @@
-/**
- * All monetary calculations are performed server-side.
- * Frontend calculations are for UX only and are never trusted.
- */
+const round2 = (num) =>
+  Math.round(
+    (num + Number.EPSILON) * 100
+  ) / 100;
 
-const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
+const calculateInvoice = ({
+  items,
+  taxRate = 0,
+  discountRate = 0,
+}) => {
 
-const calculateInvoice = ({ items, taxRate = 0, discountRate = 0 }) => {
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error("Items array must not be empty");
-  }
+  // ========================================
+  // ITEMS
+  // ========================================
 
-  const calculatedItems = items.map((item, index) => {
-    const qty = Number(item.qty);
-    const price = Number(item.price);
+  const updatedItems =
+    items.map((item) => {
 
-    if (!Number.isFinite(qty) || qty < 1) {
-      throw new Error(`Item ${index + 1}: quantity must be >= 1`);
-    }
-    if (!Number.isFinite(price) || price < 0) {
-      throw new Error(`Item ${index + 1}: price must be >= 0`);
-    }
+      const qty =
+        Number(item.qty || 0);
 
-    return {
-      name: String(item.name).trim(),
-      qty,
-      price: round2(price),
-      total: round2(qty * price),
-    };
-  });
+      const price =
+        Number(item.price || 0);
 
-  const subtotal = round2(
-    calculatedItems.reduce((sum, item) => sum + item.total, 0)
-  );
+      // ========================================
+      // LINE TOTAL
+      // ========================================
 
-  const parsedTaxRate = Number(taxRate);
-  const parsedDiscountRate = Number(discountRate);
+      const total =
+        round2(
+          qty * price
+        );
 
-  if (!Number.isFinite(parsedTaxRate) || parsedTaxRate < 0 || parsedTaxRate > 100) {
-    throw new Error("Tax rate must be between 0 and 100");
-  }
-  if (!Number.isFinite(parsedDiscountRate) || parsedDiscountRate < 0 || parsedDiscountRate > 100) {
-    throw new Error("Discount rate must be between 0 and 100");
-  }
+      // ========================================
+      // ITEM DISCOUNT
+      // ========================================
 
-  const discountAmount = round2((subtotal * parsedDiscountRate) / 100);
-  const taxableAmount = round2(subtotal - discountAmount);
-  const taxAmount = round2((taxableAmount * parsedTaxRate) / 100);
-  const total = round2(taxableAmount + taxAmount);
+      const itemDiscountRate =
+        Number(
+          item.discountRate || 0
+        );
+
+      const discountAmount =
+        round2(
+          (
+            total *
+            itemDiscountRate
+          ) / 100
+        );
+
+      // ========================================
+      // FINAL ITEM TOTAL
+      // ========================================
+
+      const finalTotal =
+        round2(
+          total -
+          discountAmount
+        );
+
+      return {
+        ...item,
+
+        total,
+
+        discountRate:
+          itemDiscountRate,
+
+        discountAmount,
+
+        finalTotal,
+      };
+    });
+
+  // ========================================
+  // SUBTOTAL
+  // ========================================
+
+  const subtotal =
+    round2(
+      updatedItems.reduce(
+        (sum, item) =>
+          sum +
+          item.total,
+        0
+      )
+    );
+
+  // ========================================
+  // DISCOUNTED SUBTOTAL
+  // PRODUCT DISCOUNT ALREADY INCLUDED
+  // ========================================
+
+  const discountedSubtotal =
+    subtotal;
+
+  // ========================================
+  // INVOICE DISCOUNT
+  // ========================================
+
+  const invoiceDiscountAmount =
+    round2(
+      (
+        discountedSubtotal *
+        Number(
+          discountRate || 0
+        )
+      ) / 100
+    );
+
+  // ========================================
+  // FINAL ITEMS
+  // ========================================
+
+  const finalItems =
+    updatedItems.map(
+      (item) => {
+
+        const share =
+          subtotal > 0
+            ? item.total /
+              subtotal
+            : 0;
+
+        const invoiceDiscountShare =
+          round2(
+            invoiceDiscountAmount *
+            share
+          );
+
+        const finalRevenue =
+          round2(
+            item.total -
+            invoiceDiscountShare
+          );
+
+        return {
+          ...item,
+
+          invoiceDiscountShare,
+
+          finalRevenue,
+        };
+      }
+    );
+
+  // ========================================
+  // TOTAL DISCOUNT
+  // ONLY OVERALL DISCOUNT
+  // ========================================
+
+  const totalDiscount =
+    round2(
+      invoiceDiscountAmount
+    );
+
+  // ========================================
+  // TAXABLE AMOUNT
+  // ========================================
+
+  const taxableAmount =
+    round2(
+      discountedSubtotal -
+      invoiceDiscountAmount
+    );
+
+  // ========================================
+  // TAX
+  // ========================================
+
+  const taxAmount =
+    round2(
+      (
+        taxableAmount *
+        Number(
+          taxRate || 0
+        )
+      ) / 100
+    );
+
+  // ========================================
+  // RAW TOTAL
+  // ========================================
+
+  const rawTotal =
+    round2(
+      taxableAmount +
+      taxAmount
+    );
+
+  // ========================================
+  // FINAL ROUNDED TOTAL
+  // ========================================
+
+  const total =
+    Math.round(
+      rawTotal
+    );
+
+  // ========================================
+  // ROUND OFF
+  // ========================================
+
+  const finalRoundOff =
+    round2(
+      total -
+      rawTotal
+    );
 
   return {
-    items: calculatedItems,
+    items: finalItems,
+
     subtotal,
-    taxRate: parsedTaxRate,
-    taxPercentage: parsedTaxRate,
+
+    discountAmount:
+      totalDiscount,
+
+    discountRate,
+
+    taxRate,
+
     taxAmount,
-    discountRate: parsedDiscountRate,
-    discountPercentage: parsedDiscountRate,
-    discountAmount,
+
+    roundOff:
+      finalRoundOff,
+
     total,
   };
 };
 
-module.exports = { calculateInvoice };
+module.exports = {
+  calculateInvoice,
+};

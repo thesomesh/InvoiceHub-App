@@ -1,21 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deployment
-  labels:
-    app: nginx
+  name: InvoiceHub-backend-deploy
+  namespace: InvoiceHub-ns
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: nginx
+      app: InvoiceHub-backend
   template:
     metadata:
+      name: InvoiceHub-backend-pod 
       labels:
-        app: nginx
+        app: InvoiceHub-backend
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.14.2
+      - name: InvoiceHub-backend-app
+        image: somesh9021/invoicehub-backend:v1.0.0
         ports:
-        - containerPort: 80
+        - containerPort: 5219
+        imagePullPolicy: Always
+
+        env:
+         - name: NODE_ENV
+         - value: 
+

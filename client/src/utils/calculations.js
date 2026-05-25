@@ -17,7 +17,21 @@ export const calculateTotals = (items, taxRate = 0, discountRate = 0) => {
   const discountAmount = round2((subtotal * parsedDiscount) / 100);
   const taxableAmount = round2(subtotal - discountAmount);
   const taxAmount = round2((taxableAmount * parsedTax) / 100);
-  const total = round2(taxableAmount + taxAmount);
+const rawTotal =
+  round2(
+    taxableAmount +
+    taxAmount
+  );
+
+const total =
+  Math.round(
+    rawTotal
+  );
+
+const finalRoundOff =
+  round2(
+    total - rawTotal
+  );
 
   return { subtotal, discountAmount, taxAmount, total };
 };

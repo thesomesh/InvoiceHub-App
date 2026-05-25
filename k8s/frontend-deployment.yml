@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend-deployment
-  labels:
-    app: InvoiceHub-frontend
+  name: InvoiceHub-frontend-deploy
+  namespace: InvoiceHub-ns
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx
+      app: InvoiceHub-frontend
   template:
     metadata:
+      name: InvoiceHub-front-pod 
       labels:
-        app: nginx
+        app: InvoiceHub-frontend
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.14.2
+      - name: InvoiceHub-frontend-app
+        image: somesh9021/invoicehub-frontend:v1.0.0
         ports:
-        - containerPort: 3000
+        - containerPort: 80

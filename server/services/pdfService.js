@@ -44,7 +44,6 @@ const generateInvoiceHTML = (
           item.price
         )}
       </td>
-
       <td class="td-right td-total">
         ${formatCurrency(
           item.total
@@ -691,7 +690,6 @@ th:not(:first-child) {
         <th>
           Unit Price
         </th>
-
         <th>
           Amount
         </th>
@@ -711,58 +709,86 @@ th:not(:first-child) {
 
   <div class="summary-table">
 
+   <div class="summary-row">
+  <span>
+    Subtotal
+  </span>
+
+  <span>
+    ${formatCurrency(
+      invoice.subtotal
+    )}
+  </span>
+</div>
+
+${
+  Number(
+    invoice.discountAmount || 0
+  ) > 0
+    ? `
     <div class="summary-row">
-      <span>
-        Subtotal
-      </span>
 
       <span>
-        ${formatCurrency(
-          invoice.subtotal
-        )}
-      </span>
-    </div>
-
-    <div class="summary-row">
-      <span>
-        ${
-          Number(
-            invoice.discountPercentage ??
-              invoice.discountRate
-          ) > 0
-            ? `Discount (${invoice.discountPercentage ?? invoice.discountRate}%)`
-            : "Discount (0%)"
-        }
+        Discount
+        (${invoice.discountRate || 0}%)
       </span>
 
       <span>
         -
         ${formatCurrency(
-          invoice.discountAmount ||
-            0
+          invoice.discountAmount
         )}
       </span>
-    </div>
 
+    </div>
+  `
+    : ""
+}
+
+${
+  Number(
+    invoice.taxAmount || 0
+  ) > 0
+    ? `
     <div class="summary-row">
+
       <span>
-        ${
-          Number(
-            invoice.taxPercentage ??
-              invoice.taxRate
-          ) > 0
-            ? `Tax (${invoice.taxPercentage ?? invoice.taxRate}%)`
-            : "Tax (0%)"
-        }
+        Tax
+        (${invoice.taxRate || 0}%)
       </span>
 
       <span>
         ${formatCurrency(
-          invoice.taxAmount ||
-            0
+          invoice.taxAmount
         )}
       </span>
+
     </div>
+  `
+    : ""
+}
+
+${
+  Number(
+    invoice.roundOff || 0
+  ) !== 0
+    ? `
+    <div class="summary-row">
+
+      <span>
+        Round Off
+      </span>
+
+      <span>
+        ${formatCurrency(
+          invoice.roundOff
+        )}
+      </span>
+
+    </div>
+  `
+    : ""
+}
 
     <!-- PAYMENT MODE -->
 

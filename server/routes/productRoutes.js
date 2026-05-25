@@ -8,7 +8,6 @@ const {
   protect,
 } = require("../middleware/auth");
 
-
 // ========================================
 // GET PRODUCTS
 // ========================================
@@ -51,7 +50,9 @@ router.get(
           createdAt: -1,
         });
 
+      // ========================================
       // STOCK FILTERS
+      // ========================================
 
       let filteredProducts =
         products;
@@ -59,8 +60,7 @@ router.get(
       // LOW STOCK
 
       if (
-        stockStatus ===
-        "low"
+        stockStatus === "low"
       ) {
         filteredProducts =
           products.filter(
@@ -106,7 +106,6 @@ router.get(
     }
   }
 );
-
 
 // ========================================
 // DASHBOARD STATS
@@ -181,6 +180,15 @@ router.get(
             ),
           0
         );
+         const cashCollected =
+    products.reduce(
+      (sum, p) =>
+        sum +
+        Number(
+          p.totalCollected || 0
+        ),
+      0
+    );
 
       // LOW STOCK
 
@@ -229,6 +237,8 @@ router.get(
         outOfStock,
 
         categories,
+
+         cashCollected,
       });
     } catch (err) {
       res.status(500).json({
@@ -238,8 +248,6 @@ router.get(
     }
   }
 );
-
-
 // ========================================
 // ADD PRODUCT
 // ========================================
@@ -256,26 +264,65 @@ router.post(
         stock,
         costPrice,
         sellingPrice,
+
+        // OPTIONAL PRODUCT DISCOUNT
+        discountPercentage = 0,
+
+        // OPTIONAL MANUAL FINAL PRICE
+        finalSellingPrice,
+
         minimumStock,
       } = req.body;
 
+      // ========================================
+      // FINAL SELLING PRICE
+      // ========================================
+
+      const actualSellingPrice =
+        Number(
+          finalSellingPrice
+        ) ||
+        (
+          Number(
+            sellingPrice
+          ) -
+          (
+            Number(
+              sellingPrice
+            ) *
+            Number(
+              discountPercentage
+            )
+          ) / 100
+        );
+
+      // ========================================
       // PROFIT PER UNIT
+      // ========================================
 
       const profitPerUnit =
-        Number(sellingPrice) -
+        actualSellingPrice -
         Number(costPrice);
 
-      // TOTAL INVENTORY VALUE
+      // ========================================
+      // INVENTORY VALUE
+      // ========================================
 
       const totalValue =
         Number(stock) *
-        Number(sellingPrice);
+        actualSellingPrice;
 
+      // ========================================
       // EXPECTED PROFIT
+      // ========================================
 
       const expectedProfit =
         Number(stock) *
         profitPerUnit;
+
+      // ========================================
+      // CREATE PRODUCT
+      // ========================================
 
       const product =
         await Product.create({
@@ -289,27 +336,43 @@ router.post(
 
           costPrice,
 
+          // ORIGINAL SELL PRICE
           sellingPrice,
 
+          // PRODUCT DISCOUNT
+          discountPercentage,
+
+          // FINAL SELL PRICE
+          finalSellingPrice:
+            actualSellingPrice,
+
+          // INVENTORY
           totalValue,
 
+          // PROFIT
           profitPerUnit,
 
           expectedProfit,
 
+          // SALES
           totalSales: 0,
 
           totalSalesProfit: 0,
 
+          // ALERT
           minimumStock,
 
-          createdBy: req.user.id,
+          // USER
+          createdBy:
+            req.user.id,
         });
 
       res.status(201).json(
         product
       );
     } catch (err) {
+      console.log(err);
+
       res.status(500).json({
         message:
           "Failed to create product",
@@ -317,7 +380,6 @@ router.post(
     }
   }
 );
-
 
 // ========================================
 // UPDATE PRODUCT
@@ -332,27 +394,56 @@ router.put(
         ...req.body,
       };
 
+      // ========================================
+      // FINAL SELL PRICE
+      // ========================================
+
+      const actualSellingPrice =
+        Number(
+          updatedData
+            .finalSellingPrice
+        ) ||
+        (
+          Number(
+            updatedData
+              .sellingPrice
+          ) -
+          (
+            Number(
+              updatedData
+                .sellingPrice
+            ) *
+            Number(
+              updatedData
+                .discountPercentage ||
+                0
+            )
+          ) / 100
+        );
+
+      // ========================================
       // PROFIT PER UNIT
+      // ========================================
 
       updatedData.profitPerUnit =
-        Number(
-          updatedData.sellingPrice
-        ) -
+        actualSellingPrice -
         Number(
           updatedData.costPrice
         );
 
+      // ========================================
       // TOTAL VALUE
+      // ========================================
 
       updatedData.totalValue =
         Number(
           updatedData.stock
         ) *
-        Number(
-          updatedData.sellingPrice
-        );
+        actualSellingPrice;
 
+      // ========================================
       // EXPECTED PROFIT
+      // ========================================
 
       updatedData.expectedProfit =
         Number(
@@ -360,10 +451,22 @@ router.put(
         ) *
         updatedData.profitPerUnit;
 
+      // ========================================
+      // SAVE FINAL SELL PRICE
+      // ========================================
+
+      updatedData.finalSellingPrice =
+        actualSellingPrice;
+
+      // ========================================
+      // UPDATE
+      // ========================================
+
       const product =
         await Product.findOneAndUpdate(
           {
-            _id: req.params.id,
+            _id:
+              req.params.id,
 
             createdBy:
               req.user.id,
@@ -385,6 +488,8 @@ router.put(
 
       res.json(product);
     } catch (err) {
+      console.log(err);
+
       res.status(500).json({
         message:
           "Failed to update product",
@@ -392,7 +497,6 @@ router.put(
     }
   }
 );
-
 
 // ========================================
 // DELETE PRODUCT
@@ -406,7 +510,8 @@ router.delete(
       const product =
         await Product.findOneAndDelete(
           {
-            _id: req.params.id,
+            _id:
+              req.params.id,
 
             createdBy:
               req.user.id,
@@ -425,6 +530,8 @@ router.delete(
           "Product deleted successfully",
       });
     } catch (err) {
+      console.log(err);
+
       res.status(500).json({
         message:
           "Failed to delete product",
