@@ -90,6 +90,11 @@ totalCollected: {
   type: Number,
   default: 0,
 },
+
+totalUnitsSold: {
+  type: Number,
+  default: 0,
+},
     // LOW STOCK
     minimumStock: {
       type: Number,

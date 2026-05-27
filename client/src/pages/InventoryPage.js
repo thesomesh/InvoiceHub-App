@@ -5,7 +5,6 @@ import React, {
 } from "react";
 
 import { productAPI } from "../services/productAPI";
-
 const defaultCategories = [
   "General",
 ];
@@ -23,6 +22,8 @@ const formatCurrency = (
     value || 0
   ).toFixed(2)}`;
 const InventoryPage = () => {
+
+   const [downloading, setDownloading] = useState(false); 
   const [products, setProducts] =
     useState([]);
 
@@ -463,12 +464,79 @@ finalSellingPrice:
         console.log(err);
       }
     };
+const downloadProductReport = async () => {
+  try {
+    setDownloading(true);
 
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      "http://localhost:5219/api/invoices/product-report/pdf",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to download report");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `inventory-report-${Date.now()}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Download Error:", error);
+    alert("Failed to download product report");
+  } finally {
+    setDownloading(false);
+  }
+};
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* SUMMARY */}
 
-     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+   <div className="flex justify-between items-center mb-6">
+ 
+
+  <button
+    onClick={downloadProductReport}
+    disabled={downloading}
+    className={`
+      flex items-center gap-2 px-5 py-3 rounded-lg font-semibold
+      transition-all duration-300
+      ${
+        downloading
+          ? "bg-gray-500 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95"
+      }
+      text-white shadow-md
+    `}
+  >
+    {downloading ? (
+      <>
+        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        Downloading...
+      </>
+    ) : (
+      <>⬇ Download Report</>
+    )}
+  </button>
+</div>
+
+<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <div className="card p-4">
           <p>Total Products</p>
 
@@ -1082,6 +1150,8 @@ finalSellingPrice:
   </div>
 </div>
     </div>
+
+    
   );
 };
 

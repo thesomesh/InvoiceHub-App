@@ -13,6 +13,7 @@ const {
   deleteInvoice,
   recalculateInvoices,
   downloadInvoicePDF,
+    downloadProductReportPDF
 } = require(
   "../controllers/invoiceController"
 );
@@ -33,7 +34,7 @@ const router =
   express.Router();
 router.get(
   "/test-recalculate",
-    // protect,
+    protect,
   recalculateInvoices
 );
 // ========================================
@@ -383,6 +384,11 @@ router.delete(
 // ========================================
 // DOWNLOAD PDF
 // ========================================
+router.get(
+  "/product-report/pdf",
+  downloadProductReportPDF
+);
+
 
 router.get(
   "/:id/pdf",

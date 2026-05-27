@@ -14,6 +14,10 @@ const {
 );
 
 const {
+  generateInventoryPDF
+} = require("../services/productReportService");
+
+const {
   generateInvoiceNumber,
 } = require(
   "../services/invoiceNumberService"
@@ -1311,10 +1315,17 @@ if (invoice.items.length === 1) {
         finalProfit
       );
 
-    product.totalUnitsSold =
-      Number(product.totalUnitsSold || 0) +
-      qty;
-      product.totalSales =
+product.totalUnitsSold =
+  Number(product.totalUnitsSold || 0) +
+  Number(qty || 0);
+
+console.log(
+  "SOLD UPDATE:",
+  product.name,
+  qty,
+  product.totalUnitsSold
+);
+
   round2(product.totalSales);
 
 product.totalCollected =
@@ -1418,6 +1429,196 @@ const downloadInvoicePDF =
         });
     }
   };
+const downloadProductReportPDF = async (req, res) => {
+  try {
+    const products = await Product.find({
+      createdBy: req.user._id
+    });
+
+    if (!products.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found"
+      });
+    }
+
+    const seller = await User.findById(
+      req.user._id
+    );
+
+    const totalSales = products.reduce(
+      (sum, p) =>
+        sum + Number(p.totalSales || 0),
+      0
+    );
+
+    const cashCollected = products.reduce(
+      (sum, p) =>
+        sum +
+        Number(p.totalCollected || 0),
+      0
+    );
+
+    const report = {
+  products,
+
+  totalProducts: products.length,
+
+  totalCategories: [
+    ...new Set(
+      products.map(
+        p => p.category || "General"
+      )
+    )
+  ].length,
+
+  totalStockUnits:
+    products.reduce(
+      (sum, p) =>
+        sum + Number(p.stock || 0),
+      0
+    ),
+
+  inventoryValue:
+    products.reduce(
+      (sum, p) =>
+        sum +
+        Number(p.totalValue || 0),
+      0
+    ),
+totalSales: products.reduce(
+  (sum, p) =>
+    sum + Number(p.totalSales || 0),
+  0
+),
+
+totalProfit: products.reduce(
+  (sum, p) =>
+    sum +
+    Number(
+      p.totalSalesProfit || 0
+    ),
+  0
+),
+  lowStockProducts:
+    products.filter(
+      p =>
+        Number(p.stock || 0) > 0 &&
+        Number(p.stock || 0) <=
+          Number(
+            p.minimumStock || 5
+          )
+    ).length,
+
+  outOfStock:
+    products.filter(
+      p =>
+        Number(p.stock || 0) <= 0
+    ).length,
+
+  healthyStock:
+    products.filter(
+      p =>
+        Number(p.stock || 0) >
+        Number(
+          p.minimumStock || 5
+        )
+    ).length,
+
+  zeroMovement:
+    products.filter(
+      p =>
+        Number(
+          p.totalUnitsSold || 0
+        ) === 0
+    ).length,
+
+  lastStockActivity:
+    products.length
+      ? new Date(
+          Math.max(
+            ...products.map(
+              p =>
+                new Date(
+                  p.updatedAt
+                )
+            )
+          )
+        ).toLocaleString("en-IN")
+      : "N/A",
+
+  categoryDistribution:
+    products.reduce(
+      (acc, p) => {
+        const cat =
+          p.category ||
+          "General";
+
+        acc[cat] =
+          (acc[cat] || 0) +
+          Number(
+            p.totalValue || 0
+          );
+
+        return acc;
+      },
+      {}
+    )
+};
+
+    const sellerInfo = {
+      businessName:
+        seller?.businessName ||
+        "InvoiceHub",
+
+      address:
+        seller?.address ||
+        "Business Address",
+
+      phone:
+        seller?.phone ||
+        "N/A",
+
+      email:
+        seller?.email ||
+        "N/A"
+    };
+
+    const pdf =
+      await generateInventoryPDF(
+        report,
+        sellerInfo
+      );
+
+    res.writeHead(200, {
+      "Content-Type":
+        "application/pdf",
+
+      "Content-Disposition":
+`attachment; filename="inventory-report-${new Date()
+  .toISOString()
+  .replace(/[:.]/g, "-")}.pdf"`,
+
+      "Content-Length":
+        pdf.length
+    });
+
+    return res.end(pdf);
+
+  } catch (error) {
+    console.error(
+      "Inventory PDF Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to generate inventory report",
+      error: error.message
+    });
+  }
+};
 
 // ========================================
 // EXPORTS
@@ -1437,4 +1638,6 @@ module.exports = {
   recalculateInvoices,
 
   downloadInvoicePDF,
+
+  downloadProductReportPDF
 };
