@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+   name: frontend-service
+   namespace: InvoiceHub-ns
+
+spec:
+  selector:
+     app: 
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+    
+  
+  type: ClusterIP

@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+   name: backend-service
+   namespace: InvoiceHub-ns
+
+spec:
+  selector:
+     app: 
+
+  ports:
+    - protocol: TCP
+      port: 5219
+      targetPort: 5219
+    
+  
+  type: ClusterIP

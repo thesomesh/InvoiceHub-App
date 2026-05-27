@@ -31,7 +31,11 @@ const {
 
 const router =
   express.Router();
-
+router.get(
+  "/test-recalculate",
+    // protect,
+  recalculateInvoices
+);
 // ========================================
 // PROTECT ALL ROUTES
 // ========================================
@@ -275,11 +279,6 @@ router.get(
 // ========================================
 // RECALCULATE OLD INVOICES
 // ========================================
-
-router.post(
-  "/recalculate",
-  recalculateInvoices
-);
 
 // ========================================
 // GET SINGLE INVOICE

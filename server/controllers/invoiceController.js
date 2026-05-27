@@ -273,7 +273,7 @@ if (
 // ========================================
 // 3. UPDATE PRODUCTS AFTER VALIDATION
 // ========================================
-
+let distributedRoundOff = 0;
 for (const item of calculated.items) {
   const product =
     await Product.findOne({
@@ -307,60 +307,96 @@ for (const item of calculated.items) {
     );
 
   const finalRevenue =
-    Number(item.finalRevenue || 0);
+  Number(item.finalRevenue || 0);
 
-  const totalCost =
-    soldQty *
-    Number(product.costPrice);
+const totalCost =
+  soldQty *
+  Number(product.costPrice);
 
-  const finalProfit =
-    finalRevenue - totalCost;
+// distribute overall invoice discount
+const itemShare =
+  calculated.subtotal > 0
+    ? finalRevenue /
+      calculated.subtotal
+    : 0;
 
-  const itemShare =
-    calculated.subtotal > 0
-      ? finalRevenue /
-        calculated.subtotal
-      : 0;
 
-  const collectedAmount =
-    finalRevenue +
-    (
-      Number(calculated.roundOff || 0)
-      * itemShare
+const isLastItem =
+  calculated.items.indexOf(item) ===
+  calculated.items.length - 1;
+
+let invoiceRoundShare;
+
+if (calculated.items.length === 1) {
+  invoiceRoundShare =
+    Number(invoice.roundOff || 0);
+
+} else if (isLastItem) {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) -
+      distributedRoundOff
     );
+
+} else {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) *
+      itemShare
+    );
+
+  distributedRoundOff +=
+    invoiceRoundShare;
+}
+
+const actualRevenue =
+  round2(
+    finalRevenue +
+    invoiceRoundShare
+  );
+
+// real product profit
+const finalProfit =
+  round2(
+    actualRevenue -
+    totalCost
+  );
+// no roundoff allocation
+
 
   const paymentRatio =
     calculated.total > 0
       ? finalAmountPaid /
         calculated.total
       : 0;
+const paidRevenue =
+  actualRevenue;
+const paidCollected =
+  invoice.amountPaid > 0
+    ? round2(
+        finalAmountPaid *
+        itemShare
+      )
+    : 0;
+const paidProfit =
+  finalProfit;
+product.totalSales =
+  round2(
+    Number(product.totalSales || 0) +
+    paidRevenue
+  );
 
-  const paidRevenue =
-    finalRevenue *
-    paymentRatio;
+product.totalCollected =
+  round2(
+    Number(product.totalCollected || 0) +
+    paidCollected
+  );
 
-  const paidCollected =
-    collectedAmount *
-    paymentRatio;
-
-  const paidProfit =
-    finalProfit *
-    paymentRatio;
-
-  product.totalSales =
-    Number(
-      product.totalSales || 0
-    ) + paidRevenue;
-
-  product.totalCollected =
-    Number(
-      product.totalCollected || 0
-    ) + paidCollected;
-
-  product.totalSalesProfit =
-    Number(
-      product.totalSalesProfit || 0
-    ) + paidProfit;
+product.totalSalesProfit =
+  round2(
+    Number(product.totalSalesProfit || 0) +
+    paidProfit
+  );
 
   product.totalUnitsSold =
     Number(
@@ -527,7 +563,7 @@ const syncProductPaymentStats =
         ? oldAmountPaid /
           invoice.total
         : 0;
-
+let distributedRoundOff = 0;
     for (const item of invoice.items) {
       const product =
         await Product.findOne({
@@ -546,34 +582,59 @@ const syncProductPaymentStats =
         Number(item.qty) *
         Number(product.costPrice);
 
-      const finalProfit =
-        finalRevenue - totalCost;
+  const itemShare =
+  round2(
+    invoice.subtotal > 0
+      ? finalRevenue / invoice.subtotal
+      : 0
+  );
+const isLastItem =
+  invoice.items.indexOf(item) ===
+  invoice.items.length - 1;
 
-      const itemShare =
-        invoice.subtotal > 0
-          ? finalRevenue /
-            invoice.subtotal
-          : 0;
+let invoiceRoundShare;
 
-      const collectedAmount =
-        finalRevenue +
-        (
-          Number(
-            invoice.roundOff || 0
-          ) * itemShare
-        );
+if (invoice.items.length === 1) {
+  invoiceRoundShare =
+    Number(invoice.roundOff || 0);
 
-      const revenueDelta =
-        finalRevenue *
-        (newRatio - oldRatio);
+} else if (isLastItem) {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) -
+      distributedRoundOff
+    );
 
-      const collectedDelta =
-        collectedAmount *
-        (newRatio - oldRatio);
+} else {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) *
+      itemShare
+    );
 
-      const profitDelta =
-        finalProfit *
-        (newRatio - oldRatio);
+  distributedRoundOff +=
+    invoiceRoundShare;
+}
+
+const actualRevenue =
+  round2(
+    finalRevenue +
+    invoiceRoundShare
+  );
+
+const finalProfit =
+  round2(
+    actualRevenue -
+    totalCost
+  );
+
+     const revenueDelta = 0;
+
+const collectedDelta =
+  (invoice.amountPaid - oldAmountPaid) *
+  itemShare;
+
+const profitDelta = 0;
 
       product.totalSales =
         Number(
@@ -635,6 +696,7 @@ const oldAmountPaid =
       // ========================================
 if (status === "cancelled") {
 
+  let distributedRoundOff = 0;
   // RESTORE INVENTORY
   for (const item of invoice.items) {
 
@@ -663,16 +725,57 @@ const paymentRatio =
     ? invoice.amountPaid / invoice.total
     : 0;
 
+const itemShare =
+  invoice.subtotal > 0
+    ? returnedRevenue /
+      invoice.subtotal
+    : 0;
+
+const isLastItem =
+  invoice.items.indexOf(item) ===
+  invoice.items.length - 1;
+
+let invoiceRoundShare;
+
+if (invoice.items.length === 1) {
+  invoiceRoundShare =
+    Number(invoice.roundOff || 0);
+
+} else if (isLastItem) {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) -
+      distributedRoundOff
+    );
+
+} else {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) *
+      itemShare
+    );
+
+  distributedRoundOff +=
+    invoiceRoundShare;
+}
+
+const actualRevenue =
+  round2(
+    returnedRevenue +
+    invoiceRoundShare
+  );
 const refundedCollected =
-  returnedRevenue * paymentRatio;
+  invoice.amountPaid * itemShare;
 
 const totalCost =
   returnedQty *
   Number(product.costPrice);
 
 const refundedProfit =
-  returnedRevenue - totalCost;
-
+  round2(
+    actualRevenue -
+    totalCost
+  );
 // RESTORE STOCK
 product.stock =
   Number(product.stock) +
@@ -689,19 +792,30 @@ product.expectedProfit =
   Number(product.profitPerUnit);
 // REVERSE SALES
 product.totalSales =
-  Number(product.totalSales || 0) -
-  returnedRevenue;
+  Math.round(
+    (
+      Number(product.totalSales || 0) -
+      actualRevenue
+    ) * 100
+  ) / 100;
 
-// REVERSE CASH
 product.totalCollected =
-  Number(product.totalCollected || 0) -
-  refundedCollected;
-
+  Math.round(
+    (
+      Number(product.totalCollected || 0) -
+      refundedCollected
+    ) * 100
+  ) / 100;
 // REVERSE PROFIT
 product.totalSalesProfit =
-  Number(product.totalSalesProfit || 0) -
-  refundedProfit;
-
+  Math.round(
+    (
+      Number(
+        product.totalSalesProfit || 0
+      ) -
+      refundedProfit
+    ) * 100
+  ) / 100;
 // PREVENT NEGATIVE VALUES
 if (product.totalSales < 0) {
   product.totalSales = 0;
@@ -710,10 +824,14 @@ if (product.totalSales < 0) {
 if (product.totalCollected < 0) {
   product.totalCollected = 0;
 }
-
-if (product.totalSalesProfit < 0) {
+if (
+  Math.abs(
+    product.totalSalesProfit
+  ) < 1
+) {
   product.totalSalesProfit = 0;
 }
+
 
 await product.save();
   }
@@ -945,24 +1063,45 @@ const recalculateInvoices =
     res,
     next
   ) => {
+        console.log(
+      "RECALCULATE HIT"
+    );
     try {
 
-      const invoices =
-        await Invoice.find({
-          userId:
-            req.user._id,
-        });
+     const invoices =
+  await Invoice.find({
+    userId:
+      req.user._id,
+  });
 
-      let updatedCount = 0;
+let updatedCount = 0;
+console.log("RESETTING PRODUCTS");
 
 
+const products =
+  await Product.find({
+    createdBy: req.user._id,
+  });
 
+for (const product of products) {
+  product.totalSales = 0;
+  product.totalCollected = 0;
+  product.totalSalesProfit = 0;
+  product.totalUnitsSold = 0;
+
+  await product.save();
+}
 
 
       
 
       for (const invoice of invoices) {
 // FIX OLD ITEM PRICES
+
+console.log(
+  invoice.invoiceNumber,
+  invoice.amountPaid
+);
 // ========================================
 // FIX OLD BROKEN ITEM PRICES
 // ========================================
@@ -987,18 +1126,15 @@ for (const item of invoice.items) {
         // RECALCULATE
         // ========================================
 
-        const recalculated =
-          calculateInvoice({
-            items:
-              invoice.items,
-
-            taxRate:
-              invoice.taxRate || 0,
-
-            discountRate:
-              invoice.discountRate || 0,
-          });
-
+      const recalculated =
+  calculateInvoice({
+    items: invoice.items,
+    taxRate: invoice.taxRate || 0,
+    discountRate:
+      invoice.discountPercentage || 0,
+    roundOff:
+      invoice.roundOff || 0
+  });
         // ========================================
         // UPDATE TOTALS
         // ========================================
@@ -1074,10 +1210,124 @@ for (const item of invoice.items) {
         // ========================================
         // SAVE
         // ========================================
+await invoice.save();
 
-        await invoice.save();
+// REBUILD PRODUCT STATS
+if (
+  invoice.status !== "cancelled"
+) {
+  let distributedRoundOff = 0;
+  for (const item of invoice.items) {
 
-        updatedCount++;
+    const product =
+      await Product.findOne({
+        name: item.name,
+        createdBy: req.user._id,
+      });
+
+    if (!product) continue;
+
+    const qty =
+      Number(item.qty);
+
+    const finalRevenue =
+      Number(item.finalRevenue || 0);
+
+    const itemShare =
+      invoice.subtotal > 0
+        ? finalRevenue /
+          invoice.subtotal
+        : 0;
+
+ 
+
+const isLastItem =
+  invoice.items.indexOf(item) ===
+  invoice.items.length - 1;
+
+let invoiceRoundShare;
+
+if (invoice.items.length === 1) {
+  invoiceRoundShare =
+    Number(invoice.roundOff || 0);
+
+} else if (isLastItem) {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) -
+      distributedRoundOff
+    );
+
+} else {
+  invoiceRoundShare =
+    round2(
+      Number(invoice.roundOff || 0) *
+      itemShare
+    );
+
+  distributedRoundOff +=
+    invoiceRoundShare;
+}
+
+    const actualRevenue =
+      round2(
+        finalRevenue +
+        invoiceRoundShare
+      );
+
+    const totalCost =
+      qty *
+      Number(product.costPrice);
+
+    const finalProfit =
+      round2(
+        actualRevenue -
+        totalCost
+      );
+
+    const collected =
+      invoice.amountPaid > 0
+        ? round2(
+            invoice.amountPaid *
+            itemShare
+          )
+        : 0;
+
+    product.totalSales =
+      round2(
+        Number(product.totalSales || 0) +
+        actualRevenue
+      );
+
+    product.totalCollected =
+      round2(
+        Number(product.totalCollected || 0) +
+        collected
+      );
+
+    product.totalSalesProfit =
+      round2(
+        Number(product.totalSalesProfit || 0) +
+        finalProfit
+      );
+
+    product.totalUnitsSold =
+      Number(product.totalUnitsSold || 0) +
+      qty;
+      product.totalSales =
+  round2(product.totalSales);
+
+product.totalCollected =
+  round2(product.totalCollected);
+
+product.totalSalesProfit =
+  round2(product.totalSalesProfit);
+
+    await product.save();
+  }
+}
+
+updatedCount++;
       }
 
       res.status(200).json({

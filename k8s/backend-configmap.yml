@@ -2,7 +2,7 @@ kind: ConfigMap
 apiVersion: v1 
 
 metadata: 
-  name: configmap-back
+  name: backend-configmap
   namespace: InvoiceHub-ns
 data:
 NODE_ENV : production

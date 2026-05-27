@@ -510,12 +510,12 @@ finalSellingPrice:
           </h2>
         </div>
         <div className="card p-4">
-  <p>Cash Collected</p>
-  <h2 className="text-2xl font-bold">
-    {formatCurrency(
-      summary?.cashCollected
-    )}
-  </h2>
+  <p>Total Revenue</p>
+<h2 className="text-2xl font-bold">
+  {formatCurrency(
+    summary?.totalSales
+  )}
+</h2>
 </div>
       </div>
 

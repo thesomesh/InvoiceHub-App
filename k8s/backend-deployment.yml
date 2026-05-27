@@ -23,5 +23,38 @@ spec:
 
         env:
          - name: NODE_ENV
-         - value: 
+         - valueFrom:
+             configMapKeyref:
+                name: backend-configmap
+                key: NODE_ENV
 
+
+
+         - name: MONGO_URI
+         - valueFrom:
+             configMapKeyref:
+                name: backend-configmap
+                key: MONGO_URI
+
+
+
+         - name: JWT_SECRET
+         - valueFrom:
+             secretKeyref:
+                name: backend-secrets
+                key: JWT_SECRET
+
+         - name: JWT_EXPIRES_IN
+         - valueFrom:
+             configMapKeyref:
+                name: backend-configmap
+                key: JWT_EXPIRES_IN
+
+
+          
+         - name: CLIENT_URL
+         - valueFrom:
+             configMapKeyref:
+                name: backend-configmap
+                key: CLIENT_URL
+              

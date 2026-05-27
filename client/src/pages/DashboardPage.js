@@ -459,7 +459,26 @@ setCurrentPage(1);
       amountPaid,
       paymentMethod
     ) => {
+const maxAmount =
+  invoice.dueAmount ||
+  invoice.total;
+
+if (amountPaid > maxAmount) {
+  setActionError(
+    `Amount cannot exceed ${formatCurrency(maxAmount)}`
+  );
+  return;
+}
+
+
+
+
+
+
       try {
+
+
+        
         setStatusSaving((p) => ({
           ...p,
           [invoice._id]: true,
@@ -685,7 +704,7 @@ const summarySalesProfit =
     ? (
         (summaryStats.revenue /
           totalRevenue) *
-        overallProfit
+        overallProfit 
       )
     : 0; 
 const overallProfitMargin =
@@ -1638,22 +1657,28 @@ const stats = [
               ? "Add Payment"
               : "Amount Received"}
           </label>
+<input
+  type="number"
+  min="1"
+  max={
+    selectedInvoice?.dueAmount ||
+    selectedInvoice?.total
+  }
+  className="input h-14 text-lg"
+  value={partialAmount}
+  onChange={(e) => {
+    const value = Number(e.target.value || 0);
 
-          <input
-            type="number"
-            min="1"
-            max={
-              selectedInvoice?.dueAmount ||
-              selectedInvoice?.total
-            }
-            className="input h-14 text-lg"
-            value={partialAmount}
-            onChange={(e) =>
-              setPartialAmount(
-                e.target.value
-              )
-            }
-          />
+    const maxAmount =
+      selectedInvoice?.dueAmount ||
+      selectedInvoice?.total ||
+      0;
+
+    setPartialAmount(
+      Math.min(value, maxAmount)
+    );
+  }}
+/>
 
         </div>
 
