@@ -8,12 +8,19 @@ const formatCurrency = (amount) =>
     minimumFractionDigits: 2,
   }).format(amount);
 
-const formatDate = (date) =>
-  new Date(date).toLocaleDateString("en-IN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+const formatDate = (
+  date,
+  timezone = "UTC"
+) =>
+  new Date(date).toLocaleDateString(
+    "en-IN",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: timezone
+    }
+  );
 
 const generateInvoiceHTML = (
   invoice,
@@ -589,8 +596,9 @@ th:not(:first-child) {
         Date:
         <span>
           ${formatDate(
-            invoice.date
-          )}
+  invoice.date,
+  seller.timezone
+)}
         </span>
       </p>
 
@@ -886,9 +894,10 @@ ${
     <p>
   Generated with InvoiceHub
       Generated on
-      ${formatDate(
-        new Date()
-      )}.
+     ${formatDate(
+  new Date(),
+  seller.timezone
+)}
     </p>
 
   </div>

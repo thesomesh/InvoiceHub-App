@@ -49,7 +49,13 @@ const RegisterPage = () => {
     }
     setLoading(true);
     try {
-      const payload = { ...form };
+     const payload = {
+  ...form,
+  timezone:
+    Intl.DateTimeFormat()
+      .resolvedOptions()
+      .timeZone
+};
       if (!payload.gstin) delete payload.gstin;
       await register(payload);
       navigate("/dashboard");

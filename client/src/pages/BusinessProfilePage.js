@@ -63,12 +63,16 @@ const BusinessProfilePage = () => {
     setLoading(true);
     try {
       await updateProfile({
-        phone,
-        address,
-        gstin,
-        defaultTaxRate,
-        defaultNote,
-      });
+  phone,
+  address,
+  gstin,
+  defaultTaxRate,
+  defaultNote,
+  timezone:
+    Intl.DateTimeFormat()
+      .resolvedOptions()
+      .timeZone
+});
       setSuccess("Business profile updated. New invoices will auto-fill your saved tax %.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update business profile");
