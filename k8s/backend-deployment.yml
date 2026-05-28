@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: InvoiceHub-backend-deploy
+  name: invoicehub-backend-deploy
   namespace: invoicehub-ns
 spec:
   replicas: 1
