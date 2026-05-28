@@ -3,58 +3,55 @@ kind: Deployment
 metadata:
   name: invoicehub-backend-deploy
   namespace: invoicehub-ns
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: invoicehub-backend
+
   template:
     metadata:
-      name: invoicehub-backend-pod 
       labels:
         app: invoicehub-backend
+
     spec:
       containers:
-      - name: invoicehub-backend-app
-        image: somesh9021/invoicehub-backend:v1.0.0
-        ports:
-        - containerPort: 5219
-        imagePullPolicy: Always
+        - name: invoicehub-backend-app
+          image: somesh9021/invoicehub-backend:v1.0.0
+          imagePullPolicy: Always
 
-        env:
-         - name: NODE_ENV
-         - valueFrom:
-             configMapKeyref:
-                name: backend-configmap
-                key: NODE_ENV
+          ports:
+            - containerPort: 5219
 
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-configmap
+                  key: NODE_ENV
 
+            - name: MONGO_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-configmap
+                  key: MONGO_URI
 
-         - name: MONGO_URI
-         - valueFrom:
-             configMapKeyref:
-                name: backend-configmap
-                key: MONGO_URI
+            - name: JWT_EXPIRES_IN
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-configmap
+                  key: JWT_EXPIRES_IN
 
+            - name: CLIENT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-configmap
+                  key: CLIENT_URL
 
-
-         - name: JWT_SECRET
-         - valueFrom:
-             secretKeyref:
-                name: backend-secrets
-                key: JWT_SECRET
-
-         - name: JWT_EXPIRES_IN
-         - valueFrom:
-             configMapKeyref:
-                name: backend-configmap
-                key: JWT_EXPIRES_IN
-
-
-          
-         - name: CLIENT_URL
-         - valueFrom:
-             configMapKeyref:
-                name: backend-configmap
-                key: CLIENT_URL
-              
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: JWT_SECRET
