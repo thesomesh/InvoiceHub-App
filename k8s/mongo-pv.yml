@@ -5,12 +5,12 @@ metadata:
   namespace: invoicehub-ns
 spec:
   capacity:
-    storage: 5Gi
+    storage: 1Gi
 
   accessModes:
     - ReadWriteOnce
 
   persistentVolumeReclaimPolicy: Retain
-
+  storageClassName: standard
   hostPath:
     path: /mnt/data/mongo
