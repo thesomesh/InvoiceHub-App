@@ -5,6 +5,7 @@ import React, {
 } from "react";
 
 import { productAPI } from "../services/productAPI";
+import api from "../services/api";
 const defaultCategories = [
   "General",
 ];
@@ -468,24 +469,16 @@ const downloadProductReport = async () => {
   try {
     setDownloading(true);
 
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(
-      "http://localhost:5219/api/invoices/product-report/pdf",
+    const response = await api.get(
+      "/invoices/product-report/pdf",
       {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        responseType: "blob",
       }
     );
 
-    if (!response.ok) {
-      throw new Error("Failed to download report");
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    );
 
     const link = document.createElement("a");
     link.href = url;

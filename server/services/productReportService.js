@@ -230,7 +230,7 @@ const categoryRows = Object.entries(
   } else if (soldUnits > 0) {
     movement = "Slow";
   } else {
-    movement = "Monitor";
+    movement = "No Sales Yet";
   }
 
   return `

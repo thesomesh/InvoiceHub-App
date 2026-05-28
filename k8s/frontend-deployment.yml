@@ -19,3 +19,9 @@ spec:
         image: somesh9021/invoicehub-frontend:v1.0.0
         ports:
         - containerPort: 80
+        env:
+          - name: REACT_APP_API_URL
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-configmap
+                key: REACT_APP_API_URL

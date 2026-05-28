@@ -29,20 +29,21 @@ const LoginPage = () => {
       await login(form.email, form.password);
       navigate(from, { replace: true });
     } catch (err) {
-      const isAccountMissing =
-        err.response?.status === 404 ||
-        /no account found/i.test(String(err.response?.data?.message || ""));
+  const backendMessage =
+    err.response?.data?.message ||
+    err.response?.data?.error?.message ||
+    "";
 
-      const message =
-        isAccountMissing
-          ? "No account found with this email. Please create an account first."
-          :
-        err.response?.data?.message ||
-        err.response?.data?.error?.message ||
-        err.message ||
-        "Login failed. Please try again.";
-      setError(message);
-    } finally {
+  const isAccountMissing =
+    /no account found/i.test(backendMessage);
+
+  const message = isAccountMissing
+    ? "No account found with this email. Please create an account first."
+    : backendMessage || "Invalid email or password.";
+
+  setError(message);
+}
+     finally {
       setLoading(false);
     }
   };

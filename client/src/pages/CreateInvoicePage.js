@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { invoiceAPI } from "../services/api";
 import { calculateTotals, formatCurrency } from "../utils/calculations";
 import { Alert } from "../components/UI";
-
+import api from "../services/api";
 const PlusIcon = () => (
   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -89,29 +89,15 @@ useEffect(() => {
   fetchProducts();
 }, []);
 
-const fetchProducts =
-  async () => {
-    try {
-      const res =
-        await fetch(
-          "http://localhost:5219/api/products",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem(
-                "token"
-              )}`,
-            },
-          }
-        );
-
-      const data =
-        await res.json();
-
-      setProducts(data || []);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+const fetchProducts = async () => {
+  try {
+    const res = await api.get("/products");
+    setProducts(res.data || []);
+  } catch (err) {
+    console.error("Failed to fetch products:", err);
+    setProducts([]);
+  }
+};
 
 
 
