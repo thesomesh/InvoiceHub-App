@@ -12,5 +12,5 @@ spec:
     - protocol: TCP
       port: 5219
       targetPort: 5219
-
+      nodePort: 30501
   type: NodePort
