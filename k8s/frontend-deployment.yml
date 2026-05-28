@@ -7,15 +7,15 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: InvoiceHub-frontend
+      app: invoicehub-frontend
   template:
     metadata:
-      name: InvoiceHub-front-pod 
+      name: invoicehub-front-pod 
       labels:
-        app: InvoiceHub-frontend
+        app: invoicehub-frontend
     spec:
       containers:
-      - name: InvoiceHub-frontend-app
+      - name: invoicehub-frontend-app
         image: somesh9021/invoicehub-frontend:v1.0.0
         ports:
         - containerPort: 80
