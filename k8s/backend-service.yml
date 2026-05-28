@@ -1,17 +1,16 @@
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
-   name: backend-service
-   namespace: invoicehub-ns
+  name: backend-service
+  namespace: invoicehub-ns
 
 spec:
   selector:
-     app: invoicehub-backend
+    app: invoicehub-backend
 
   ports:
     - protocol: TCP
       port: 5219
       targetPort: 5219
-    
-  
-type: NodePort
+
+  type: NodePort
