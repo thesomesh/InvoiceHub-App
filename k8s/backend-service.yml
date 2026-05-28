@@ -6,7 +6,7 @@ metadata:
 
 spec:
   selector:
-     app: 
+     app: invoicehub-backend
 
   ports:
     - protocol: TCP
