@@ -6,7 +6,7 @@ metadata:
 
 spec:
   selector:
-     app: 
+     app: mongodb
 
   ports:
     - protocol: TCP

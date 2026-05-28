@@ -55,7 +55,7 @@ const RegisterPage = () => {
     Intl.DateTimeFormat()
       .resolvedOptions()
       .timeZone
-};
+};   
       if (!payload.gstin) delete payload.gstin;
       await register(payload);
       navigate("/dashboard");
