@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
    name: mongo
-   namespace: InvoiceHub-ns
+   namespace: invoicehub-ns
 
 spec:
   selector:
