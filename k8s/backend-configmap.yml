@@ -5,7 +5,7 @@ metadata:
   name: backend-configmap
   namespace: invoicehub-ns
 data:
-NODE_ENV : production
-MONGO_URI : mongodb://mongo:27017/InvoiceHub
+NODE_ENV : "production"
+MONGO_URI : "mongodb://mongo:27017/InvoiceHub"
 JWT_EXPIRES_IN: "7d"
 CLIENT_URL: "http://frontend-service"
