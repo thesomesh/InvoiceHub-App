@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
+const expenseRoutes = require("./routes/expenseRoutes");
 const productRoutes =
   require("./routes/productRoutes");
 const app = express();
@@ -37,7 +38,10 @@ app.use(
   "/api/products",
   productRoutes
 );
-
+app.use(
+  "/api/expenses",
+  expenseRoutes
+);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.originalUrl} not found` });

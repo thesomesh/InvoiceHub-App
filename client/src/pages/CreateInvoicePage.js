@@ -301,7 +301,7 @@ roundOff,
         <Alert message={error} type="error" />
 
         {/* Invoice Meta */}
-        <div className="card p-5">
+        <div className="card rounded-3xl p-5 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <h2
             className="text-xs font-bold uppercase tracking-widest mb-4"
             style={{ color: "var(--text-muted)" }}
@@ -334,7 +334,7 @@ roundOff,
         </div>
 
         {/* Customer */}
-        <div className="card p-5">
+       <div className="card rounded-3xl p-5 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <h2
             className="text-xs font-bold uppercase tracking-widest mb-4"
             style={{ color: "var(--text-muted)" }}
@@ -404,7 +404,7 @@ roundOff,
         </div>
 {/* Line Items */}
 
-<div className="card p-5">
+<div className="card rounded-3xl p-5 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
   <h2
     className="text-xs font-bold uppercase tracking-widest mb-4"
     style={{
@@ -758,7 +758,7 @@ discountRate:
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
   {/* LEFT */}
 
-  <div className="card p-6 rounded-3xl border border-gray-100 bg-white">
+  <div className="card rounded-3xl border border-gray-100 bg-white p-6 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
     <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 mb-5">
       Invoice Adjustments
     </h2>
@@ -851,7 +851,7 @@ discountRate:
   <div className="space-y-6">
     {/* SUMMARY */}
 
-    <div className="card p-6 rounded-3xl border border-gray-100 bg-white">
+  <div className="card rounded-3xl border border-gray-100 bg-white p-6 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 mb-5">
         Invoice Summary
       </h2>
@@ -957,7 +957,7 @@ discountRate:
 
     {/* PAYMENT DETAILS */}
 
-    <div className="card p-6 rounded-3xl border border-gray-100 bg-white">
+   <div className="card rounded-3xl border border-gray-100 bg-white p-6 shadow-xl hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 mb-5">
         Payment Details
       </h2>

@@ -21,6 +21,10 @@ const Navbar = () => {
     to: "/inventory",
     label: "Inventory",
   },
+    {
+    to: "/expenses",
+    label: "Expenses",
+  },
     { to: "/invoices/create", label: "New Invoice" },
     { to: "/profile/business", label: "Business Profile" },
 

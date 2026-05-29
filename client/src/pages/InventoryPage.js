@@ -62,7 +62,8 @@ minimumStock: 5,
 
   const [editingId, setEditingId] =
     useState(null);
-
+const [currentPage, setCurrentPage] = useState(1);
+const productsPerPage = 10;
   // ========================================
   // DYNAMIC CATEGORIES
   // ========================================
@@ -465,6 +466,25 @@ finalSellingPrice:
         console.log(err);
       }
     };
+const indexOfLastProduct =
+  currentPage * productsPerPage;
+
+const indexOfFirstProduct =
+  indexOfLastProduct - productsPerPage;
+
+const currentProducts =
+  products.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+
+const totalPages =
+  Math.ceil(
+    products.length / productsPerPage
+  );
+
+
+
 const downloadProductReport = async () => {
   try {
     setDownloading(true);
@@ -530,7 +550,7 @@ const downloadProductReport = async () => {
 </div>
 
 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        <div className="card p-4">
+        <div className="card p-4 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <p>Total Products</p>
 
           <h2 className="text-2xl font-bold">
@@ -540,7 +560,7 @@ const downloadProductReport = async () => {
           </h2>
         </div>
 
-        <div className="card p-4">
+        <div className="card p-4 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <p>Inventory Value</p>
 
           <h2 className="text-2xl font-bold">
@@ -551,7 +571,7 @@ const downloadProductReport = async () => {
           </h2>
         </div>
 
-        <div className="card p-4">
+        <div className="card p-4 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <p>Total Expected Profit</p>
 
           <h2 className="text-2xl font-bold">
@@ -561,7 +581,7 @@ const downloadProductReport = async () => {
           </h2>
         </div>
 
-        <div className="card p-4">
+        <div className="card p-4 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
           <p>Sales Profit</p>
 
           <h2 className="text-2xl font-bold">
@@ -570,7 +590,7 @@ const downloadProductReport = async () => {
 )}
           </h2>
         </div>
-        <div className="card p-4">
+        <div className="card p-4 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
   <p>Total Revenue</p>
 <h2 className="text-2xl font-bold">
   {formatCurrency(
@@ -582,7 +602,7 @@ const downloadProductReport = async () => {
 
       {/* FORM */}
 
-<div className="card p-6 mb-8">
+<div className="card p-6 mb-8 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
   <h2 className="text-2xl font-bold mb-6">
     {editingId
       ? "Update Product"
@@ -874,7 +894,7 @@ const downloadProductReport = async () => {
 
 {/* FILTERS */}
 
-<div className="card p-5 mb-6">
+<div className="card p-5 mb-6 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div>
       <label className="label">
@@ -971,14 +991,14 @@ const downloadProductReport = async () => {
 
 {/* TABLE */}
 
-<div className="card overflow-hidden">
+<div className="card rounded-3xl overflow-hidden hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
  <div className="overflow-x-auto pb-2">
-  <table className="min-w-[1450px] w-full">
+<table className="w-full table-auto">
       <thead>
         <tr>
-          <th className="px-5 py-4 text-left">
-            Product Name
-          </th>
+          <th className="px-5 py-4 text-left min-w-[320px]">
+  Product Name
+</th>
 
           <th className="px-5 py-4 text-left">
             Category
@@ -1021,27 +1041,18 @@ const downloadProductReport = async () => {
       </thead>
 
       <tbody>
-        {products.map(
+      {currentProducts.map(
           (product) => (
             <tr
-              key={product._id}
-              className="border-b"
-            >
-       <td className="px-4 py-4 min-w-[280px] max-w-[320px] align-top">
-  <div
-    className="
-      break-words
-      whitespace-normal
-      leading-6
-      text-sm
-      font-semibold
-    "
-    title={product.name}
-  >
-    {product.name}
-  </div>
+  key={product._id}
+  onClick={() => handleEdit(product)}
+  className="border-b border-indigo-900/20 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 cursor-pointer"
+><td
+  title={product.name}
+  className="px-5 py-4 text-left text-gray-900 font-medium min-w-[320px] whitespace-normal break-words"
+>
+  {product.name}
 </td>
-
               <td className="px-5 py-4">
                 {product.category}
               </td>
@@ -1111,7 +1122,7 @@ const downloadProductReport = async () => {
               </td>
 
               <td className="px-5 py-4">
-                <div className="flex justify-end gap-4">
+               <div className="flex justify-center gap-4">
                   <button
                     onClick={() =>
                       handleEdit(
@@ -1140,7 +1151,38 @@ const downloadProductReport = async () => {
         )}
       </tbody>
     </table>
+
+<div className="flex justify-center items-center gap-4 py-6 border-t">
+
+  <button
+    disabled={currentPage === 1}
+    onClick={() =>
+      setCurrentPage(currentPage - 1)
+    }
+    className="px-4 py-2 rounded-xl border disabled:opacity-40"
+  >
+    Prev
+  </button>
+
+  <span className="font-medium text-gray-500 dark:text-gray-300">
+    Page {currentPage} of {totalPages}
+  </span>
+
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() =>
+      setCurrentPage(currentPage + 1)
+    }
+    className="px-4 py-2 rounded-xl bg-indigo-600 text-white disabled:opacity-40"
+  >
+    Next
+  </button>
+
+</div>
+    
   </div>
+
+  
 </div>
     </div>
 

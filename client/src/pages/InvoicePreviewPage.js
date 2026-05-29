@@ -121,7 +121,7 @@ const InvoicePreviewPage = () => {
 
       <Alert message={pdfError} type="error" className="mb-4" />
 
-      <div className="invoice-paper">
+      <div className="invoice-paper hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
         <section className="invoice-paper-head">
           <div>
             <p className="invoice-head-kicker">Professional Billing</p>
@@ -139,7 +139,7 @@ const InvoicePreviewPage = () => {
         </section>
 
         <section className="invoice-meta-grid">
-          <article className="invoice-meta-card">
+          <article className="invoice-meta-card hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
             <p className="invoice-meta-label">From</p>
             <p className="invoice-meta-strong">{sellerName}</p>
             {user?.phone && <p className="invoice-meta-muted">{user.phone}</p>}
@@ -148,7 +148,7 @@ const InvoicePreviewPage = () => {
             <p className="invoice-meta-muted">Generated via InvoiceHub</p>
           </article>
 
-          <article className="invoice-meta-card">
+          <article className="invoice-meta-card hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
             <p className="invoice-meta-label">Bill To</p>
             <p className="invoice-meta-strong">{invoice.customer?.name}</p>
             <p className="invoice-meta-muted">{invoice.customer?.phone}</p>
@@ -156,7 +156,7 @@ const InvoicePreviewPage = () => {
             {invoice.customer?.address && <p className="invoice-meta-muted">{invoice.customer.address}</p>}
           </article>
 
-          <article className="invoice-meta-card">
+          <article className="invoice-meta-card hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
             <p className="invoice-meta-label">Invoice Info</p>
             <p className="invoice-meta-muted">
               Number: <span className="invoice-meta-strong">{invoice.invoiceNumber}</span>
@@ -200,7 +200,7 @@ const InvoicePreviewPage = () => {
           </div>
         </section>
 
-      <section className="invoice-summary-panel">
+     <section className="invoice-summary-panel hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
 
   {/* SUBTOTAL */}
 
@@ -388,7 +388,7 @@ const InvoicePreviewPage = () => {
 {invoice.paymentHistory &&
  invoice.paymentHistory.length > 0 && (
 
-  <section className="invoice-notes-block">
+ <section className="invoice-notes-block hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
 
     <p className="invoice-notes-label">
       Payment History
@@ -401,7 +401,7 @@ const InvoicePreviewPage = () => {
 
           <div
             key={index}
-            className="flex justify-between items-center p-4 rounded-2xl border border-gray-100 bg-gray-50"
+           className="flex justify-between items-center p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300"
           >
 
             <div>
@@ -456,7 +456,7 @@ const InvoicePreviewPage = () => {
 )}
         {invoice.notes && (
           
-          <section className="invoice-notes-block">
+         <section className="invoice-notes-block hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
             <p className="invoice-notes-label">Notes</p>
             <p>{invoice.notes}</p>
           </section>

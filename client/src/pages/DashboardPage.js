@@ -8,7 +8,7 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
-
+import { expenseAPI } from "../services/expenseAPI";
 import {
   FileText,
   CheckCircle2,
@@ -42,11 +42,14 @@ import {
 } from "../utils/calculations";
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user} = useAuth();
 
   const navigate =
     useNavigate();
 
+const cardClass = "card rounded-3xl";
+const inputClass = "input";
+const [expenses, setExpenses] = useState([]);
   const {
     invoices,
     loading,
@@ -202,12 +205,11 @@ setCurrentPage(1);
       toDate,
     ]);
 
-  useEffect(() => {
-    load();
-
-    fetchDashboardStats();
-  }, [load]);
-
+ useEffect(() => {
+  load();
+  fetchDashboardStats();
+  fetchExpenses();
+}, [load]);
   // ========================================
   // FETCH STATS
   // ========================================
@@ -225,7 +227,14 @@ setCurrentPage(1);
         console.log(err);
       }
     };
-
+const fetchExpenses = async () => {
+  try {
+    const res = await expenseAPI.getAll();
+    setExpenses(res.data || []);
+  } catch (err) {
+    console.log(err);
+  }
+};
   // ========================================
   // DELETE
   // ========================================
@@ -632,7 +641,47 @@ const activeSummaryInvoices =
       inv.status !==
       "cancelled"
   );
+const summaryExpenses = expenses
+  .filter((exp) => {
+    const d = new Date(exp.date);
+    const now = new Date();
 
+    if (summaryPeriod === "today") {
+      return d.toDateString() === now.toDateString();
+    }
+
+    if (summaryPeriod === "thisWeek") {
+      const weekAgo = new Date();
+      weekAgo.setDate(now.getDate() - 7);
+      return d >= weekAgo;
+    }
+
+    if (summaryPeriod === "previousMonth") {
+      return (
+        d.getMonth() === now.getMonth() - 1 &&
+        d.getFullYear() === now.getFullYear()
+      );
+    }
+
+    if (summaryPeriod === "custom") {
+      if (!customFrom || !customTo) return true;
+
+      return (
+        d >= new Date(customFrom) &&
+        d <= new Date(customTo)
+      );
+    }
+
+    return (
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  })
+  .reduce(
+    (sum, exp) =>
+      sum + Number(exp.amount || 0),
+    0
+  );
 const summaryStats = {
   bills:
   summaryInvoices.length,
@@ -668,22 +717,8 @@ const summaryStats = {
         ),
       0
     ),
+expenses: summaryExpenses,
 
-  refunded:
-    summaryInvoices
-      .filter(
-        (inv) =>
-          inv.status ===
-          "cancelled"
-      )
-      .reduce(
-        (sum, inv) =>
-          sum +
-          Number(
-            inv.total || 0
-          ),
-        0
-      ),
 };
 const overallProfit =
   inventoryStats?.totalSalesProfit || 0;
@@ -801,47 +836,40 @@ const stats = [
 ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
       {/* HEADER */}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard
-          </h1>
+   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+  <div>
+<h1 className="text-5xl font-bold text-gray-900 dark:text-white">
+  Dashboard
+</h1>
 
-          <p className="text-lg font-medium text-gray-700 mt-1">
-  {(() => {
-    const hour =
-      new Date().getHours();
+    <p className={`text-lg font-medium mt-1 text-gray-500 dark:text-gray-300`}>
+      {(() => {
+        const hour = new Date().getHours();
 
-    if (hour < 12)
-      return `Good Morning, ${user?.name}`;
+        if (hour < 12) return `Good Morning, ${user?.name}`;
+        if (hour < 17) return `Good Afternoon, ${user?.name}`;
+        return `Good Evening, ${user?.name}`;
+      })()}
+    </p>
+  </div>
 
-    if (hour < 17)
-      return `Good Afternoon, ${user?.name}`;
+  <Link
+    to="/create-invoice"
+    className="btn-primary"
+  >
+    + Create Invoice
+  </Link>
+</div>
 
-    return `Good Evening, ${user?.name}`;
-  })()}
-</p>
-
-
-        </div>
-
-        <Link
-          to="/create-invoice"
-          className="btn-primary"
-        >
-          + Create Invoice
-        </Link>
-      </div>
-
-   <div className="bg-white rounded-3xl border border-gray-100 p-5 mb-8">
+   <div className={`${cardClass} p-5 mb-8`}>
 
   <div className="flex items-center justify-between flex-wrap gap-4">
 
-    <h2 className="text-lg font-semibold text-gray-800">
+    <h2 className={"text-lg font-semibold text-gray-900 dark:text-white"}>
       Summary Period
     </h2>
 
@@ -878,12 +906,11 @@ const stats = [
               p.key
             )
           }
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            summaryPeriod ===
-            p.key
-              ? "bg-indigo-600 text-white"
-              : "bg-gray-100 hover:bg-gray-200"
-          }`}
+className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+  summaryPeriod === p.key
+    ? "bg-indigo-600 text-white"
+    : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+}`}
         >
           {p.label}
         </button>
@@ -896,7 +923,7 @@ const stats = [
 
     <input
       type="date"
-      className="input"
+      className={inputClass}
       value={customFrom}
       onChange={(e) =>
         setCustomFrom(
@@ -907,7 +934,7 @@ const stats = [
 
     <input
       type="date"
-      className="input"
+      className={inputClass}
       value={customTo}
       onChange={(e) =>
         setCustomTo(
@@ -921,9 +948,9 @@ const stats = [
   </div>
 
 </div>
-  <div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+  <div className={`${cardClass} p-6 mb-8 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300`}>
 
-  <h2 className="text-xl font-bold mb-5">
+  <h2 className={"text-xl font-bold mb-5 text-gray-900 dark:text-white"}>
     {summaryPeriod ===
     "today"
       ? "Today's Summary"
@@ -939,10 +966,10 @@ const stats = [
 <div className="grid grid-cols-6 gap-6 items-center">
 
    <div className="text-center">
-      <p className="text-gray-500">
+      <p className="text-gray-500 dark:text-gray-300">
         Bills Created
       </p>
-      <strong>
+      <strong className="text-gray-900 dark:text-white">
         {
           summaryStats.bills
         }
@@ -950,10 +977,10 @@ const stats = [
     </div>
 
     <div className="text-center">
-      <p className="text-gray-500">
+      <p className="text-gray-500 dark:text-gray-300">
         Revenue
       </p>
-      <strong>
+      <strong className="text-gray-900 dark:text-white">
         {formatCurrency(
           summaryStats.revenue
         )}
@@ -961,10 +988,10 @@ const stats = [
     </div>
 
     <div className="text-center">
-      <p className="text-gray-500">
+      <p className="text-gray-500 dark:text-gray-300">
         Collected
       </p>
-      <strong>
+      <strong className="text-gray-900 dark:text-white">
         {formatCurrency(
           summaryStats.collected
         )}
@@ -972,17 +999,17 @@ const stats = [
     </div>
 
   <div className="text-center">
-      <p className="text-gray-500">
+      <p className="text-gray-500 dark:text-gray-300">
         Due
       </p>
-      <strong>
+      <strong className="text-gray-900 dark:text-white">
         {formatCurrency(
           summaryStats.due
         )}
       </strong>
     </div>
 <div className="text-center">
-  <p className="text-gray-500">
+  <p className="text-gray-500 dark:text-gray-300">
     Sales Profit
   </p>
   <strong className="text-green-600">
@@ -992,12 +1019,12 @@ const stats = [
   </strong>
 </div>
    <div className="text-center">
-      <p className="text-gray-500">
-        Refunded
+      <p className="text-gray-500 dark:text-gray-300">
+       Expenses
       </p>
-      <strong>
+      <strong className="text-gray-900 dark:text-white">
         {formatCurrency(
-          summaryStats.refunded
+          summaryStats.expenses
         )}
       </strong>
     </div>
@@ -1007,19 +1034,19 @@ const stats = [
 </div>  
 
 
-<div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+<div className={`${cardClass} p-6 mb-8 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300`}>
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-xl font-bold">
+    <h2 className={"text-xl font-bold text-gray-900 dark:text-white"}>
       Pending Collections
     </h2>
 
-    <span className="text-sm text-gray-500">
+    <span className={`text-sm text-gray-500 dark:text-gray-300`}>
       {pendingCollections.length} invoices
     </span>
   </div>
 
   {pendingCollections.length === 0 ? (
-    <p className="text-gray-500">
+    <p className="text-gray-500 dark:text-gray-300">
       No pending collections
     </p>
   ) : (
@@ -1039,11 +1066,11 @@ const stats = [
               className="flex justify-between items-center border-b pb-3"
             >
               <div>
-                <p className="font-semibold">
+                <p className={"font-semibold text-gray-900 dark:text-white"}>
                   {inv.invoiceNumber}
                 </p>
 
-                <p className="text-sm text-gray-500">
+                <p className={`text-sm text-gray-500 dark:text-gray-300`}>
                   {inv.customer?.name}
                 </p>
               </div>
@@ -1055,7 +1082,7 @@ const stats = [
                   )}
                 </p>
 
-                <p className="text-xs text-gray-500">
+                <p className={`text-xs text-gray-500 dark:text-gray-300`}>
                   {daysPending === 0
                     ? "Due Today"
                     : `${daysPending} Days Pending`}
@@ -1074,7 +1101,7 @@ const stats = [
 
 
 <div className="mb-8">
-  <h2 className="text-xl font-bold text-gray-900 mb-5">
+ <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
     Business Performance Overview
   </h2>
   {/* STATS */}
@@ -1086,25 +1113,27 @@ const stats = [
           return (
             <div
               key={s.label}
-              className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm"
+          className={`${cardClass} p-6 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className={`text-sm text-gray-500 dark:text-gray-300 font-medium`}>
                     {s.label}
                   </p>
 
-                  <h2 className="text-3xl font-bold mt-3 text-gray-900">
+                 <h2 className={`text-3xl font-bold mt-3 `}>
                     {s.value}
                   </h2>
                 </div>
 
-                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
-                  <Icon
-                    size={24}
-                    className="text-gray-700"
-                  />
-           
+                <div
+  className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+   "bg-gray-100 dark:bg-gray-800"
+  }`}
+><Icon
+  size={24}
+  className="text-indigo-600 dark:text-indigo-300"
+/>      
                 </div>
               </div>
             </div>
@@ -1116,18 +1145,18 @@ const stats = [
       
 {/* FILTERS */}
 
-<div className="bg-white rounded-3xl border border-gray-100 p-6 mb-8">
+<div className={`${cardClass} p-6 mb-8 hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300`}>
 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-center">
 
     {/* Invoice No */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
         Invoice No
       </label>
       <input
         type="text"
         placeholder="Search invoice"
-        className="input"
+        className={inputClass}
         value={search}
         onChange={(e) =>
           setSearch(e.target.value)
@@ -1137,13 +1166,13 @@ const stats = [
 
     {/* Customer */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
       Customer Name
       </label>
       <input
         type="text"
         placeholder="Customer name"
-        className="input"
+        className={inputClass}
         value={customerSearch}
         onChange={(e) =>
           setCustomerSearch(
@@ -1155,11 +1184,11 @@ const stats = [
 
     {/* Status */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
         Status
       </label>
       <select
-        className="input"
+        className={inputClass}
         value={statusFilter}
         onChange={(e) =>
           setStatusFilter(
@@ -1187,11 +1216,11 @@ const stats = [
 
     {/* Payment Mode */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
         Payment Mode
       </label>
       <select
-        className="input"
+        className={inputClass}
         value={paymentModeFilter}
         onChange={(e) =>
           setPaymentModeFilter(
@@ -1228,12 +1257,12 @@ const stats = [
 
     {/* From Date */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
         From Date
       </label>
       <input
         type="date"
-        className="input"
+        className={inputClass}
         value={fromDate}
         onChange={(e) =>
           setFromDate(
@@ -1245,12 +1274,12 @@ const stats = [
 
     {/* To Date */}
     <div>
-      <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 text-center">
+      <label className={`block text-xs font-semibold uppercase tracking-wide mb-2 text-center text-gray-500 dark:text-gray-300`}>
         To Date
       </label>
       <input
         type="date"
-        className="input"
+        className={inputClass}
         value={toDate}
         onChange={(e) =>
           setToDate(
@@ -1272,7 +1301,7 @@ const stats = [
 </div>
       {/* TABLE */}
 
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
+     <div className={`${cardClass} overflow-hidden`}>
 
         {loading ? (
           <div className="py-16 flex justify-center">
@@ -1289,39 +1318,41 @@ const stats = [
 <table className="w-full table-auto">
 
               <thead>
-                <tr className="border-b bg-gray-50">
+              <tr className={`border-b ${
+ "bg-gray-50 dark:bg-gray-800"
+}`}>
 
-                  <th className="px-5 py-4 text-center whitespace-nowrap">
+                  <th className={`px-5 py-4 text-center whitespace-nowrap text-gray-500 dark:text-gray-300`}>
                     Invoice
                   </th>
 
-                 <th className="px-5 py-4 text-center whitespace-nowrap">
+                 <th className={`px-5 py-4 text-center whitespace-nowrap text-gray-500 dark:text-gray-300`}>
                     Customer
                   </th>
 
-                  <th className="px-5 py-4 text-center whitespace-nowrap">
+                  <th className={`px-5 py-4 text-center whitespace-nowrap text-gray-500 dark:text-gray-300`}>
                     Date
                   </th>
 
-                  <th className="px-5 py-4 text-right">
+                <th className={`px-5 py-4 text-right font-semibold text-gray-500 dark:text-gray-300`}>
                     Total
                   </th>
 
-                  <th className="px-5 py-4 text-right">
+               <th className={`px-5 py-4 text-right font-semibold text-gray-500 dark:text-gray-300`}>
                     Paid
                   </th>
 
-                  <th className="px-5 py-4 text-right">
+              <th className={`px-5 py-4 text-right font-semibold text-gray-500 dark:text-gray-300`}>
                     Due
                   </th>
-                  <th className="px-3 py-4 text-center w-[160px]">
+                  <th className={`px-5 py-4 text-center font-semibold text-gray-500 dark:text-gray-300`}>
   Payment Mode
 </th>
-                  <th className="px-5 py-4 text-center">
+                 <th className={`px-5 py-4 text-center font-semibold text-gray-500 dark:text-gray-300`}>
                     Status
                   </th>
 
-                 <th className="w-[180px] px-6 py-4 text-center whitespace-nowrap">
+               <th className={`px-5 py-4 text-center font-semibold text-gray-500 dark:text-gray-300`}>
   Actions
 </th>
 
@@ -1336,29 +1367,31 @@ const stats = [
                       key={
                         inv._id
                       }
-                      className="border-b hover:bg-gray-50 transition"
+              className={`border-b border-indigo-900/20 transition-all duration-300 ${
+ "hover:bg-gray-50 dark:hover:bg-gray-800"
+}`}
                     >
 
-                     <td className="px-5 py-4 font-semibold whitespace-nowrap">
+                  <td className={"px-5 py-4 whitespace-nowrap text-gray-900 dark:text-white"}>
                         {
                           inv.invoiceNumber
                         }
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap">
+                      <td className={"px-5 py-4 whitespace-nowrap text-gray-900 dark:text-white"}>
                         {
                           inv.customer
                             ?.name
                         }
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap">
+                      <td className={"px-5 py-4 whitespace-nowrap text-gray-900 dark:text-white"}>
                         {formatDate(
                           inv.date
                         )}
                       </td>
 
-                      <td className="px-5 py-4 text-right font-semibold">
+                <td className={"px-5 py-4 text-right font-semibold text-gray-900 dark:text-white"}>
                         {formatCurrency(
                           inv.total
                         )}
@@ -1378,7 +1411,7 @@ const stats = [
                         )}
                       </td>
                    <td className="px-5 py-4 text-center">
-  <span className="font-medium text-gray-700">
+  <span className={`font-medium text-gray-500 dark:text-gray-300`}>
     {inv.paymentMethod || "-"}
   </span>
 </td>
@@ -1414,11 +1447,9 @@ const stats = [
                               : inv.status ===
                                 "partial"
                               ? "text-blue-600"
-                              : inv.status ===
-                                "cancelled"
-                              ? "text-red-600"
-                              : "text-orange-500"
-                              
+                              : inv.status === "cancelled"
+? "text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-700"
+: "text-orange-500"
                           }`}
                         >
 
@@ -1512,8 +1543,10 @@ const stats = [
                                 inv
                               )
                             }
-                            className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center"
-                          >
+                   
+ className="w-8 h-8 rounded-xl hover:bg-indigo-50 text-indigo-600 transition-all duration-200 flex items-center justify-center"
+>
+                          
                             <Download
                               size={
                                 18
@@ -1561,7 +1594,7 @@ const stats = [
     Prev
   </button>
 
-  <span className="font-medium text-gray-700">
+  <span className={`font-medium text-gray-500 dark:text-gray-300`}>
     Page {currentPage} of {totalPages}
   </span>
 
@@ -1589,17 +1622,17 @@ const stats = [
 {paymentModal && (
   <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
 
-    <div className="bg-white rounded-[32px] p-7 w-full max-w-md shadow-2xl border border-gray-100">
+    <div className={`${cardClass} p-7 w-full max-w-md rounded-[32px]`}>
 
       <div className="mb-6">
 
-        <h2 className="text-3xl font-bold text-gray-900">
+        <h2 className={"text-3xl font-bold text-gray-900 dark:text-white"}>
           {newStatus === "paid"
             ? "Complete Payment"
             : "Update Payment"}
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+       <p className={`text-sm mt-1 text-gray-500 dark:text-gray-300`}>
           {selectedInvoice?.invoiceNumber}
         </p>
 
@@ -1608,13 +1641,15 @@ const stats = [
       <div className="space-y-5">
 
         {/* Invoice Total */}
-        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+        <div
+  className="rounded-2xl p-5 border bg-gray-50 border-gray-100 dark:bg-gray-800 dark:border-gray-700"
+>
           <div className="flex justify-between items-center">
-            <span className="text-gray-500 font-medium">
+            <span className={`text-gray-500 dark:text-gray-300 font-medium`}>
               Invoice Total
             </span>
 
-            <strong className="text-xl text-gray-900">
+            <strong className={`text-xl text-gray-900 dark:text-white`}>
               {formatCurrency(
                 selectedInvoice?.total || 0
               )}
@@ -1624,12 +1659,14 @@ const stats = [
 
         {/* Installment Tracking */}
         {selectedInvoice?.amountPaid > 0 && (
-          <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+          <div
+className="rounded-2xl p-5 border bg-blue-50 border-blue-100 dark:bg-gray-800 dark:border-gray-700"
+>
 
             <div className="flex justify-between mb-2">
               <span>Already Paid</span>
 
-              <strong>
+              <strong className="text-gray-900 dark:text-white">
                 {formatCurrency(
                   selectedInvoice?.amountPaid || 0
                 )}
@@ -1639,7 +1676,7 @@ const stats = [
             <div className="flex justify-between">
               <span>Remaining Due</span>
 
-              <strong>
+              <strong className="text-gray-900 dark:text-white">
                 {formatCurrency(
                   selectedInvoice?.dueAmount || 0
                 )}
@@ -1664,7 +1701,7 @@ const stats = [
     selectedInvoice?.dueAmount ||
     selectedInvoice?.total
   }
-  className="input h-14 text-lg"
+className={`${inputClass} h-14 text-lg`}
   value={partialAmount}
   onChange={(e) => {
     const value = Number(e.target.value || 0);
@@ -1690,7 +1727,7 @@ const stats = [
           </label>
 
           <select
-            className="input h-14"
+            className={`${inputClass} h-14`}
             value={paymentMethod}
             onChange={(e) =>
               setPaymentMethod(

@@ -32,7 +32,7 @@ import InvoicePreviewPage from "./pages/InvoicePreviewPage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
 
 import InventoryPage from "./pages/InventoryPage";
-
+import ExpensePage from "./pages/ExpensePage";
 const AppContent = () => {
   return (
     <BrowserRouter>
@@ -86,7 +86,14 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-
+<Route
+  path="/expenses"
+  element={
+    <ProtectedRoute>
+      <ExpensePage />
+    </ProtectedRoute>
+  }
+/>
             <Route
               path="/invoices/create"
               element={
