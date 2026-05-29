@@ -1049,7 +1049,7 @@ const downloadProductReport = async () => {
   className="border-b border-indigo-900/20 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 cursor-pointer"
 ><td
   title={product.name}
-  className="px-5 py-4 text-left text-gray-900 font-medium min-w-[320px] whitespace-normal break-words"
+  className="px-5 py-4 text-left text-gray-900 dark:text-gray-100 font-medium min-w-[320px] whitespace-normal break-words"
 >
   {product.name}
 </td>
