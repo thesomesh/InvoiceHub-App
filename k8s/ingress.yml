@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: invoicehub-ingress
-
+  namespace: invoicehub-ns
 spec:
   ingressClassName: nginx
 
