@@ -5,4 +5,4 @@ metadata:
   namespace: invoicehub-ns
 
 data:
-  REACT_APP_API_URL: "http://65.0.183.210:5219/api"
+  REACT_APP_API_URL: "/api"
