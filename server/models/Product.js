@@ -19,10 +19,10 @@ const productSchema = new mongoose.Schema(
 
     // UNIT
     unit: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+  type: String,
+  default: "kg",
+  trim: true,
+},
 
     // STOCK
     stock: {

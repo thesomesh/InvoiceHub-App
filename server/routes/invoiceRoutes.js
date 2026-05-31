@@ -13,7 +13,8 @@ const {
   deleteInvoice,
   recalculateInvoices,
   downloadInvoicePDF,
-    downloadProductReportPDF
+    downloadProductReportPDF,
+    downloadSalesReportPDF
 } = require(
   "../controllers/invoiceController"
 );
@@ -284,6 +285,10 @@ router.get(
 // ========================================
 // GET SINGLE INVOICE
 // ========================================
+router.get(
+  "/sales-report",
+  downloadSalesReportPDF
+);
 
 router.get(
   "/:id",

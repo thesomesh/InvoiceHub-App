@@ -6,7 +6,11 @@ const User =
 
 const Product =
   require("../models/Product");
+const Expense = require("../models/Expense");
 
+const {
+  generateSalesReportPDF
+} = require("../services/salesReportService");
 const {
   calculateInvoice,
 } = require(
@@ -269,7 +273,7 @@ if (
 ) {
     return res.status(400).json({
       message:
-        `${item.name} has only ${product.stock} ${product.unit} left in stock`
+        `${item.name} has only ${product.stock}left in stock`
     });
   }
 }
@@ -638,7 +642,6 @@ const collectedDelta =
   (invoice.amountPaid - oldAmountPaid) *
   itemShare;
 
-const profitDelta = 0;
 
       product.totalSales =
         Number(
@@ -649,7 +652,7 @@ const profitDelta = 0;
         Number(
           product.totalCollected || 0
         ) + collectedDelta;
-
+const profitDelta = finalProfit;
       product.totalSalesProfit =
         Number(
           product.totalSalesProfit || 0
@@ -1620,6 +1623,91 @@ totalProfit: products.reduce(
   }
 };
 
+
+const downloadSalesReportPDF =
+async (req, res) => {
+  try {
+    const {
+      type,
+      customStart,
+      customEnd
+    } = req.query;
+
+    const invoices =
+      await Invoice.find({
+        userId: req.user._id
+      });
+
+    const expenses =
+      await Expense.find({
+        createdBy: req.user._id
+      });
+
+  
+const seller =
+  await User.findById(
+    req.user._id
+  );
+
+const sellerData = {
+  _id: req.user._id,
+
+  businessName:
+    seller?.businessName || "InvoiceHub",
+
+  address:
+    seller?.address || "Business Address",
+
+  phone:
+    seller?.phone || "N/A",
+
+  email:
+    seller?.email || "N/A"
+};
+const pdf =
+  await generateSalesReportPDF(
+    invoices,
+    expenses,
+    sellerData,
+    type,
+    customStart,
+    customEnd
+  );
+
+
+
+  const pdfBuffer = pdf;
+
+    res.writeHead(200, {
+      "Content-Type":
+        "application/pdf",
+
+      "Content-Disposition":
+        `attachment; filename="${type}.pdf"`,
+
+      "Content-Length":
+        pdfBuffer.length
+    });
+
+    return res.end(pdfBuffer);
+
+  } catch (error) {
+    console.error(
+      "Sales PDF Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to generate sales report",
+      error: error.message
+    });
+  }
+};
+
+
+
 // ========================================
 // EXPORTS
 // ========================================
@@ -1639,5 +1727,6 @@ module.exports = {
 
   downloadInvoicePDF,
 
-  downloadProductReportPDF
+  downloadProductReportPDF,
+  downloadSalesReportPDF 
 };

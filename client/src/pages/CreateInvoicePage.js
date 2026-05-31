@@ -599,11 +599,7 @@ discountRate:
               }
             />
 
-            {item.unit && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                {item.unit}
-              </span>
-            )}
+        
           </div>
 
           {item.availableStock !==
@@ -613,8 +609,7 @@ discountRate:
               {" "}
               {
                 item.availableStock
-              }{" "}
-              {item.unit}
+              }
             </p>
           )}
 

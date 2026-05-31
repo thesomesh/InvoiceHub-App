@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Alert } from "../components/UI";
+import api from "../services/api";
 
 const BusinessProfilePage = () => {
   const { user, updateProfile } = useAuth();
@@ -15,7 +16,20 @@ const BusinessProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+const [reportType, setReportType] =
+useState("today");
 
+const [
+  downloadingReport,
+  setDownloadingReport
+] = useState(false);
+
+
+const [customStart, setCustomStart] =
+useState("");
+
+const [customEnd, setCustomEnd] =
+useState("");
   useEffect(() => {
     if (!user) return;
     setPhone(user.phone || "");
@@ -80,6 +94,77 @@ const BusinessProfilePage = () => {
       setLoading(false);
     }
   };
+
+const downloadReport = async () => {
+  try {
+    setDownloadingReport(true);
+
+
+let url =
+  `/invoices/sales-report?type=${reportType}`;
+
+
+    if (
+      reportType === "custom"
+    ) {
+      if (
+        !customStart ||
+        !customEnd
+      ) {
+        alert(
+          "Please select start and end date"
+        );
+        return;
+      }
+
+     url +=
+`&customStart=${customStart}&customEnd=${customEnd}`;
+    }
+
+    const response =
+      await api.get(url, {
+        responseType: "blob",
+      });
+
+    const fileUrl =
+      window.URL.createObjectURL(
+        new Blob([response.data])
+      );
+
+    const link =
+      document.createElement("a");
+
+    link.href = fileUrl;
+
+    link.download =
+      `sales-report-${reportType}-${Date.now()}.pdf`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(
+      fileUrl
+    );
+
+  } catch (error) {
+    console.error(
+      "Sales Report Download Error:",
+      error
+    );
+
+    alert(
+      "Failed to download sales report"
+    );
+
+  } finally {
+    setDownloadingReport(false);
+  }
+};
+
+
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 page-enter">
@@ -194,6 +279,134 @@ const BusinessProfilePage = () => {
           </button>
         </div>
       </form>
+
+<div className="card p-6 mt-8">
+  <div className="mb-5">
+    <h2
+      className="text-xl font-bold"
+      style={{ color: "var(--text)" }}
+    >
+      Sales Report
+    </h2>
+
+    <p
+      className="text-sm mt-1"
+      style={{ color: "var(--text-muted)" }}
+    >
+      Download business performance reports
+    </p>
+  </div>
+
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+
+    <button
+      className={
+        reportType === "today"
+          ? "btn-primary"
+          : "btn-secondary"
+      }
+      onClick={() => setReportType("today")}
+    >
+      Today
+    </button>
+
+    <button
+      className={
+        reportType === "this-month"
+          ? "btn-primary"
+          : "btn-secondary"
+      }
+      onClick={() =>
+        setReportType("this-month")
+      }
+    >
+      This Month
+    </button>
+
+    <button
+      className={
+        reportType === "last-month"
+          ? "btn-primary"
+          : "btn-secondary"
+      }
+      onClick={() =>
+        setReportType("last-month")
+      }
+    >
+      Last Month
+    </button>
+
+   
+
+    <button
+      className={
+        reportType === "custom"
+          ? "btn-primary"
+          : "btn-secondary"
+      }
+      onClick={() =>
+        setReportType("custom")
+      }
+    >
+      Custom
+    </button>
+  </div>
+
+  {reportType === "custom" && (
+    <div className="mt-5 grid sm:grid-cols-2 gap-4">
+      <div>
+        <label className="label">
+          Start Date
+        </label>
+
+        <input
+          type="date"
+          className="input"
+          value={customStart}
+          onChange={(e) =>
+            setCustomStart(
+              e.target.value
+            )
+          }
+        />
+      </div>
+
+      <div>
+        <label className="label">
+          End Date
+        </label>
+
+        <input
+          type="date"
+          className="input"
+          value={customEnd}
+          onChange={(e) =>
+            setCustomEnd(
+              e.target.value
+            )
+          }
+        />
+      </div>
+    </div>
+  )}
+
+
+<button
+  className="btn-primary w-full mt-6"
+  onClick={downloadReport}
+  disabled={downloadingReport}
+>
+  {downloadingReport
+    ? "Downloading..."
+    : "Download Sales Report PDF"}
+</button>
+
+
+</div>
+
+
+
+
     </div>
   );
 };
