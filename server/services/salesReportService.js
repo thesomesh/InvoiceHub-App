@@ -184,7 +184,11 @@ const isMonthReport =
   const colors = ["#0f3460","#2563eb","#60a5fa","#93c5fd","#dbeafe"];
 
   const pieStops = paymentData.map((p, i) => {
-    const percent = (p.value / (totalPayment || 1)) * 100;
+    const safeTotalPayment =
+  totalPayment > 0 ? totalPayment : 1;
+
+const percent =
+  (p.value / safeTotalPayment) * 100;
     const start = cumulative;
     cumulative += percent;
     return `${colors[i]} ${start}% ${cumulative}%`;
@@ -244,9 +248,14 @@ const comparisonProfit = comparisonRevenue * 0.1;
 
       categoryStats[cat].units += Number(item.qty || 0);
       categoryStats[cat].revenue += Number(item.finalRevenue || item.total || 0);
-     categoryStats[cat].profit +=
+     const profitRatio =
+  revenue > 0
+    ? salesProfit / revenue
+    : 0;
+
+categoryStats[cat].profit +=
   Number(item.finalRevenue || item.total || 0) *
-  (salesProfit / revenue || 0);
+  profitRatio;
     });
   });
 
@@ -361,7 +370,9 @@ type === "today"
 <th>${isMonthReport ? "This Month" : "Today"}</th>
 <th>Change</th>
 </tr>
-<tr><td>Revenue</td><td>${formatCurrency(comparisonRevenue)}</td><td>${formatCurrency(revenue)}</td><td>${comparisonRevenue > 0 ? (((revenue-comparisonRevenue)/comparisonRevenue)*100).toFixed(1) : revenue > 0 ? "100.0" : "0.0"}%</td></tr>
+<tr><td>Revenue</td><td>${formatCurrency(comparisonRevenue)}</td><td>${formatCurrency(revenue)}</td><td>${comparisonRevenue > 0 ? ((comparisonRevenue > 0
+  ? ((revenue - comparisonRevenue) / comparisonRevenue) * 100
+  : 0)*100).toFixed(1) : revenue > 0 ? "100.0" : "0.0"}%</td></tr>
 <tr><td>Sales Profit</td><td>${formatCurrency(comparisonProfit)}</td><td>${formatCurrency(salesProfit)}</td><td>${comparisonProfit > 0 ? (((salesProfit-comparisonProfit)/comparisonProfit)*100).toFixed(1) : salesProfit > 0 ? "100.0" : "0.0"}%</td></tr>
 </table>
 ${pageBreak}
@@ -593,7 +604,15 @@ ${isTodayReport
 `;
 
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu"
+  ]
+});
   const page = await browser.newPage();
 
   await page.setContent(html);
