@@ -282,7 +282,7 @@ if (
 // 3. UPDATE PRODUCTS AFTER VALIDATION
 // ========================================
 let distributedRoundOff = 0;
-for (const item of calculated.items) {
+for (const item of invoice.items) {
   const product =
     await Product.findOne({
       name: item.name,
@@ -370,7 +370,9 @@ const finalProfit =
     totalCost
   );
 // no roundoff allocation
-
+item.finalProfit = finalProfit;
+item.actualRevenue = actualRevenue;
+item.totalCost = totalCost;
 
   const paymentRatio =
     calculated.total > 0
@@ -414,8 +416,11 @@ product.totalSalesProfit =
   product.lastSoldAt =
     new Date();
 
-  await product.save();
+await product.save();
 }
+
+await invoice.save();
+
 
 // 3. RESPONSE
 res.status(201).json({
@@ -636,6 +641,9 @@ const finalProfit =
     totalCost
   );
 
+item.finalProfit = finalProfit;
+item.actualRevenue = actualRevenue;
+item.totalCost = totalCost;
      const revenueDelta = 0;
 
 const collectedDelta =
@@ -1291,7 +1299,9 @@ if (invoice.items.length === 1) {
         actualRevenue -
         totalCost
       );
-
+item.finalProfit = finalProfit;
+item.actualRevenue = actualRevenue;
+item.totalCost = totalCost;
     const collected =
       invoice.amountPaid > 0
         ? round2(
@@ -1339,6 +1349,8 @@ product.totalSalesProfit =
 
     await product.save();
   }
+
+  await invoice.save(); // save item profit fields
 }
 
 updatedCount++;
@@ -1643,7 +1655,8 @@ async (req, res) => {
         createdBy: req.user._id
       });
 
-  
+  const includeProductSales =
+req.query.includeProductSales === "true";
 const seller =
   await User.findById(
     req.user._id
@@ -1671,7 +1684,8 @@ const pdf =
     sellerData,
     type,
     customStart,
-    customEnd
+    customEnd,
+    includeProductSales
   );
 
 

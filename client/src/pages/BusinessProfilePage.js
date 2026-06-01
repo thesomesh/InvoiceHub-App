@@ -30,6 +30,10 @@ useState("");
 
 const [customEnd, setCustomEnd] =
 useState("");
+const [
+  includeProductSales,
+  setIncludeProductSales
+] = useState(false);
   useEffect(() => {
     if (!user) return;
     setPhone(user.phone || "");
@@ -101,7 +105,7 @@ const downloadReport = async () => {
 
 
 let url =
-  `/invoices/sales-report?type=${reportType}`;
+`/invoices/sales-report?type=${reportType}&includeProductSales=${includeProductSales}`;
 
 
     if (
@@ -390,7 +394,20 @@ let url =
     </div>
   )}
 
-
+<div className="mt-5 flex items-center gap-3">
+  <input
+    type="checkbox"
+    checked={includeProductSales}
+    onChange={(e) =>
+      setIncludeProductSales(
+        e.target.checked
+      )
+    }
+  />
+  <label>
+ Product Sales Details
+  </label>
+</div>
 <button
   className="btn-primary w-full mt-6"
   onClick={downloadReport}

@@ -257,6 +257,7 @@ const totalPages =
               type="number"
               name="amount"
               className="input"
+                required
               placeholder="Enter amount"
               value={form.amount}
               onChange={handleChange}
@@ -270,6 +271,7 @@ const totalPages =
             <input
               type="date"
               name="date"
+                required
               className="input"
               value={form.date}
               onChange={handleChange}

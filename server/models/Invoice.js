@@ -141,7 +141,25 @@ const itemSchema =
       // ========================================
       // FINAL PROFIT
       // ========================================
+// FINAL PROFIT
+finalProfit: {
+  type: Number,
+  default: 0,
+},
 
+// ACTUAL REVENUE AFTER ROUNDOFF
+actualRevenue: {
+  type: Number,
+  default: 0,
+},
+
+// PRODUCT COST
+totalCost: {
+  type: Number,
+  default: 0,
+},
+
+// keep old field for backward compatibility
       profit: {
         type: Number,
 

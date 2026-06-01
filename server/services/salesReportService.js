@@ -119,15 +119,29 @@ const generateSalesReportPDF = async (
   seller,
   type,
   customStart,
-  customEnd
+  customEnd,
+  includeProductSales = false
 ) => {
 
   const { start, end } = getDateRange(type, customStart, customEnd);
 
-  const filteredInvoices = invoices.filter(i => {
-    const d = new Date(i.date || i.createdAt);
-    return d >= start && d <= end && i.status !== "cancelled";
-  });
+const filteredInvoices = invoices.filter(i => {
+  const d = new Date(i.date || i.createdAt);
+
+  d.setHours(0, 0, 0, 0);
+
+  const rangeStart = new Date(start);
+  rangeStart.setHours(0, 0, 0, 0);
+
+  const rangeEnd = new Date(end);
+  rangeEnd.setHours(23, 59, 59, 999);
+
+  return (
+    d >= rangeStart &&
+    d <= rangeEnd &&
+    i.status !== "cancelled"
+  );
+});
 
  const filteredExpenses = expenses.filter((e) => {
   const expenseDate = new Date(e.date || e.createdAt);
@@ -155,10 +169,16 @@ const generateSalesReportPDF = async (
     (s, i) => s + Number(i.dueAmount || 0), 0
   );
 
-const salesProfit =
-  revenue > 0
-    ? revenue * 0.1
-    : 0;
+const salesProfit = filteredInvoices.reduce(
+  (sum, inv) =>
+    sum +
+    (inv.items || []).reduce(
+      (itemSum, item) =>
+        itemSum + Number(item.finalProfit || 0),
+      0
+    ),
+  0
+);
 
   const expenseTotal = filteredExpenses.reduce(
     (s, e) => s + Number(e.amount || 0), 0
@@ -209,14 +229,20 @@ if (isMonthReport) {
     0
   );
 
+  prevStart.setHours(0,0,0,0);
+  prevEnd.setHours(23,59,59,999);
+
   comparisonInvoices = invoices.filter(i => {
     const d = new Date(i.date || i.createdAt);
-    return d >= prevStart &&
-           d <= prevEnd &&
-           i.status !== "cancelled";
-  });
+    d.setHours(0,0,0,0);
 
-} else {
+    return (
+      d >= prevStart &&
+      d <= prevEnd &&
+      i.status !== "cancelled"
+    );
+  });
+}else {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
 
@@ -230,10 +256,43 @@ if (isMonthReport) {
 const comparisonRevenue = comparisonInvoices.reduce(
   (s, i) => s + Number(i.total || 0), 0
 );
-
-const comparisonProfit = comparisonRevenue * 0.1;
+const comparisonProfit = comparisonInvoices.reduce(
+  (sum, inv) =>
+    sum +
+    (inv.items || []).reduce(
+      (itemSum, item) =>
+        itemSum + Number(item.finalProfit || 0),
+      0
+    ),
+  0
+);
   const categoryStats = {};
+const productStats = {};
 
+filteredInvoices.forEach(inv => {
+  (inv.items || []).forEach(item => {
+    const name = item.name || "Unknown";
+
+    if (!productStats[name]) {
+      productStats[name] = {
+        category:
+          item.category || "General",
+        units: 0,
+        revenue: 0,
+        profit: 0
+      };
+    }
+
+    productStats[name].units +=
+      Number(item.qty || 0);
+
+    productStats[name].revenue +=
+      Number(item.finalRevenue || 0);
+
+    productStats[name].profit +=
+      Number(item.finalProfit || 0);
+  });
+});
   filteredInvoices.forEach(inv => {
     (inv.items || []).forEach(item => {
       const cat = item.category || "General";
@@ -248,51 +307,91 @@ const comparisonProfit = comparisonRevenue * 0.1;
 
       categoryStats[cat].units += Number(item.qty || 0);
       categoryStats[cat].revenue += Number(item.finalRevenue || item.total || 0);
-     const profitRatio =
-  revenue > 0
-    ? salesProfit / revenue
-    : 0;
-
-categoryStats[cat].profit +=
-  Number(item.finalRevenue || item.total || 0) *
-  profitRatio;
+categoryStats[cat].profit += Number(
+  item.finalProfit || 0
+);
     });
   });
+const getCalendarWeeks = (start, end) => {
+  const weeks = [];
+  let current = new Date(start);
 
+  while (current <= end) {
+    const weekStart = new Date(current);
+    const weekEnd = new Date(current);
 
-const weeklyData = [0,0,0,0];
+    const day = weekStart.getDay();
+
+    const daysToSunday =
+      day === 0 ? 0 : 7 - day;
+
+    weekEnd.setDate(
+      weekStart.getDate() + daysToSunday
+    );
+
+    if (weekEnd > end) {
+      weekEnd.setTime(end.getTime());
+    }
+
+    weeks.push({
+      start: new Date(weekStart),
+      end: new Date(weekEnd),
+      label: `${String(weekStart.getDate()).padStart(2,"0")}/${String(weekStart.getMonth()+1).padStart(2,"0")}-${String(weekEnd.getDate()).padStart(2,"0")}/${String(weekEnd.getMonth()+1).padStart(2,"0")}`,
+      revenue: 0,
+      profit: 0
+    });
+
+    current = new Date(weekEnd);
+    current.setDate(
+      current.getDate() + 1
+    );
+  }
+
+  return weeks;
+};
+const weeklyData = getCalendarWeeks(start, end);
 
 filteredInvoices.forEach(inv => {
-  const day = new Date(inv.date || inv.createdAt).getDate();
-  const weekIndex = Math.min(Math.floor((day - 1) / 7), 3);
-  weeklyData[weekIndex] += Number(inv.total || 0);
+  const invoiceDate = new Date(inv.date || inv.createdAt);
+
+  const week = weeklyData.find(
+    w => invoiceDate >= w.start && invoiceDate <= w.end
+  );
+
+  if (week) {
+   week.revenue += Number(inv.total || 0);
+
+week.profit += (inv.items || []).reduce(
+  (sum, item) =>
+    sum + Number(item.finalProfit || 0),
+  0
+);
+  }
 });
-
 const last6Months = [];
-
-const today = new Date();
+const baseDate = new Date(end);
 
 for (let i = 5; i >= 0; i--) {
   const monthDate = new Date(
-    today.getFullYear(),
-    today.getMonth() - i,
+    baseDate.getFullYear(),
+    baseDate.getMonth() - i,
     1
   );
 
   const month = monthDate.getMonth();
   const year = monthDate.getFullYear();
 
-const monthRevenue = filteredInvoices
-    .filter(inv => {
-      const d = new Date(inv.date || inv.createdAt);
+const monthRevenue = invoices
+  .filter(inv => {
+    const d = new Date(inv.date || inv.createdAt);
 
-      return (
-        d.getMonth() === month &&
-        d.getFullYear() === year &&
-        inv.status !== "cancelled"
-      );
-    })
-    .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+    return (
+      d.getMonth() === month &&
+      d.getFullYear() === year &&
+      inv.status !== "cancelled"
+    );
+  })
+  .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
 
   last6Months.push({
     month: monthDate.toLocaleString("en-IN", {
@@ -337,7 +436,9 @@ const pageBreak = `<div style="page-break-before: always;"></div>`;
           ? "Today Sales Report"
           : type === "this-month"
           ? "This Month Sales Report"
-          : "Custom Sales Report"
+         : type === "last-month"
+? "Last Month Sales Report"
+: "Custom Sales Report"
       }
     </p>
 
@@ -372,7 +473,7 @@ type === "today"
 </tr>
 <tr><td>Revenue</td><td>${formatCurrency(comparisonRevenue)}</td><td>${formatCurrency(revenue)}</td><td>${comparisonRevenue > 0 ? ((comparisonRevenue > 0
   ? ((revenue - comparisonRevenue) / comparisonRevenue) * 100
-  : 0)*100).toFixed(1) : revenue > 0 ? "100.0" : "0.0"}%</td></tr>
+  : 0)).toFixed(1) : revenue > 0 ? "100.0" : "0.0"}%</td></tr>
 <tr><td>Sales Profit</td><td>${formatCurrency(comparisonProfit)}</td><td>${formatCurrency(salesProfit)}</td><td>${comparisonProfit > 0 ? (((salesProfit-comparisonProfit)/comparisonProfit)*100).toFixed(1) : salesProfit > 0 ? "100.0" : "0.0"}%</td></tr>
 </table>
 ${pageBreak}
@@ -471,12 +572,12 @@ ${pageBreak}
 <th>Profit</th>
 </tr>
 
-${weeklyData.map((amt, i) => `
+${weeklyData.map((week) => `
 <tr>
-<td>Week ${i+1}</td>
-<td>${formatCurrency(amt)}</td>
-<td>${((amt/(revenue||1))*100).toFixed(1)}%</td>
-<td>${formatCurrency(amt*0.1)}</td>
+<td>${week.label}</td>
+<td>${formatCurrency(week.revenue)}</td>
+<td>${((week.revenue/(revenue||1))*100).toFixed(1)}%</td>
+<td>${formatCurrency(week.profit)}</td>
 </tr>
 `).join("")}
 <tr>
@@ -489,22 +590,47 @@ ${weeklyData.map((amt, i) => `
 
 <h2 class="section-title">8. WEEKLY REVENUE DISTRIBUTION</h2>
 
-<div style="position:relative;width:300px;height:300px;margin:30px auto;">
+<div style="position:relative;width:500px;height:300px;margin:30px auto;">
 
 <div class="pie" style="
 width:300px;
 height:300px;
 background:conic-gradient(
-#0f3460 0% ${(weeklyData[0]/(revenue||1))*100}%,
-#2563eb ${(weeklyData[0]/(revenue||1))*100}% ${((weeklyData[0]+weeklyData[1])/(revenue||1))*100}%,
-#60a5fa ${((weeklyData[0]+weeklyData[1])/(revenue||1))*100}% ${((weeklyData[0]+weeklyData[1]+weeklyData[2])/(revenue||1))*100}%,
-#93c5fd ${((weeklyData[0]+weeklyData[1]+weeklyData[2])/(revenue||1))*100}% 100%
+#0f3460 0% ${((weeklyData[0]?.revenue||0)/(revenue||1))*100}%,
+#2563eb ${((weeklyData[0]?.revenue||0)/(revenue||1))*100}% ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0))/(revenue||1))*100}%,
+#60a5fa ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0))/(revenue||1))*100}% ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0)+(weeklyData[2]?.revenue||0))/(revenue||1))*100}%,
+#93c5fd ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0)+(weeklyData[2]?.revenue||0))/(revenue||1))*100}% ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0)+(weeklyData[2]?.revenue||0)+(weeklyData[3]?.revenue||0))/(revenue||1))*100}%,
+#dbeafe ${(((weeklyData[0]?.revenue||0)+(weeklyData[1]?.revenue||0)+(weeklyData[2]?.revenue||0)+(weeklyData[3]?.revenue||0))/(revenue||1))*100}% 100%
 );
 "></div>
-${weeklyData[0] > 0 ? `<div style="position:absolute;top:20px;left:120px;font-weight:bold;">Week 1 </div>` : ""}
-${weeklyData[1] > 0 ? `<div style="position:absolute;top:130px;right:20px;font-weight:bold;">Week 2</div>` : ""}
-${weeklyData[2] > 0 ? `<div style="position:absolute;bottom:20px;left:120px;font-weight:bold;">Week 3</div>` : ""}
-${weeklyData[3] > 0 ? `<div style="position:absolute;top:130px;left:20px;font-weight:bold;">Week 4</div>` : ""}
+
+${weeklyData.map((week, i) =>
+  week.revenue > 0
+    ? `<div style="
+        position:absolute;
+        top:${30 + (i * 32)}px;
+        right:-140px;
+        width:130px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        font-weight:bold;
+        font-size:13px;
+        color:#0f3460;
+      ">
+        <span style="
+          width:14px;
+          height:14px;
+          border-radius:50%;
+          background:${
+            ["#0f3460","#2563eb","#60a5fa","#93c5fd","#dbeafe"][i]
+          };
+          display:inline-block;
+        "></span>
+        ${week.label}
+      </div>`
+    : ""
+).join("")}
 
 </div>
 ${pageBreak}
@@ -513,7 +639,15 @@ ${row("Total Sales Revenue", formatCurrency(revenue))}
 ${row("Paid Invoices", filteredInvoices.filter(i=>i.dueAmount===0).length)}
 ${row("Partial Payments", filteredInvoices.filter(i=>i.dueAmount>0 && i.amountPaid>0).length)}
 ${row("Pending Invoices", filteredInvoices.filter(i=>i.amountPaid===0).length)}
-${row("Cancelled Invoices", invoices.filter(i=>i.status==="cancelled").length)}
+${row("Cancelled Invoices", invoices.filter(i => {
+  const d = new Date(i.date || i.createdAt);
+
+  return (
+    d >= start &&
+    d <= end &&
+    i.status === "cancelled"
+  );
+}).length)}
 
 <h2 class="section-title">10. CASH FLOW REPORT</h2>
 ${row("Cash Inflow", formatCurrency(collected))}
@@ -549,7 +683,7 @@ ${row(
 )}
 
 
-<svg width="1100" height="380">
+<svg width="900" height="380">
 
 <line x1="60" y1="320" x2="1050" y2="320" stroke="#999"/>
 <line x1="60" y1="40" x2="60" y2="320" stroke="#999"/>
@@ -559,7 +693,7 @@ fill="none"
 stroke="#000"
 stroke-width="5"
 points="${last6Months.map((m,i)=>{
- const x = 100 + i*160;
+const x = 90 + i*130;
  const maxRevenue = Math.max(...last6Months.map(a=>a.revenue),1);
  const y = 320 - ((m.revenue/maxRevenue)*220);
  return `${x},${y}`;
@@ -567,7 +701,7 @@ points="${last6Months.map((m,i)=>{
 />
 
 ${last6Months.map((m,i)=>{
- const x = 100 + i*160;
+const x = 90 + i*130;
  const maxRevenue = Math.max(...last6Months.map(a=>a.revenue),1);
  const y = 320 - ((m.revenue/maxRevenue)*220);
 
@@ -576,13 +710,50 @@ ${last6Months.map((m,i)=>{
  <text x="${x-25}" y="${y-15}" font-size="14">
    ${formatCurrency(m.revenue)}
  </text>
- <text x="${x-15}" y="350">${m.month}</text>
+<text
+  x="${x-18}"
+  y="350"
+  font-size="16"
+  font-weight="bold"
+>
+  ${m.month}
+</text>
  `;
 }).join("")}
 
 </svg>
 ` : ""}
+${includeProductSales ? `
 
+${pageBreak}
+
+<h2 class="section-title">
+               PRODUCT SALES ANALYTICS REPORT
+</h2>
+
+
+<table>
+<tr>
+<th>Product</th>
+<th>Category</th>
+<th>Units Sold</th>
+<th>Revenue</th>
+<th>Sales Profit </th>
+</tr>
+
+${Object.entries(productStats).map(([name,data])=>`
+<tr>
+<td>${name}</td>
+<td>${data.category}</td>
+<td>${data.units}</td>
+<td>${formatCurrency(data.revenue)}</td>
+<td>${formatCurrency(data.profit)}</td>
+</tr>
+`).join("")}
+
+</table>
+
+` : ""}
 <div style="padding:40px; font-size:18px; line-height:2;">
 <h2>GENERATED BY INVOICEHUB REPORT</h2>
 
@@ -592,10 +763,12 @@ ${last6Months.map((m,i)=>{
 
 <p>
 Report Type :
-${isTodayReport
+${type === "today"
  ? "Today Sales Report"
  : type === "this-month"
-? "This-Month Sales Report"
+ ? "This Month Sales Report"
+ : type === "last-month"
+ ? "Last Month Sales Report"
  : "Custom Sales Report"}
 </p>
 </div>
