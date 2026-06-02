@@ -95,7 +95,29 @@ totalUnitsSold: {
   type: Number,
   default: 0,
 },
-    // LOW STOCK
+   purchaseHistory: [
+  {
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+
+    units: {
+      type: Number,
+      default: 0,
+    },
+
+    costPrice: {
+      type: Number,
+      default: 0,
+    },
+
+    total: {
+      type: Number,
+      default: 0,
+    },
+  },
+], // LOW STOCK
     minimumStock: {
       type: Number,
       default: 5,

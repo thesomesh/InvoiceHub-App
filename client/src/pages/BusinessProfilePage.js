@@ -34,6 +34,10 @@ const [
   includeProductSales,
   setIncludeProductSales
 ] = useState(false);
+const [
+  includeProductPurchases,
+  setIncludeProductPurchases
+] = useState(false);
   useEffect(() => {
     if (!user) return;
     setPhone(user.phone || "");
@@ -105,7 +109,7 @@ const downloadReport = async () => {
 
 
 let url =
-`/invoices/sales-report?type=${reportType}&includeProductSales=${includeProductSales}`;
+`/invoices/sales-report?type=${reportType}&includeProductSales=${includeProductSales}&includeProductPurchases=${includeProductPurchases}`;
 
 
     if (
@@ -395,6 +399,20 @@ let url =
   )}
 
 <div className="mt-5 flex items-center gap-3">
+  <div className="mt-3 flex items-center gap-3">
+  <input
+    type="checkbox"
+    checked={includeProductPurchases}
+    onChange={(e) =>
+      setIncludeProductPurchases(
+        e.target.checked
+      )
+    }
+  />
+  <label>
+    Product Purchase Details
+  </label>
+</div>
   <input
     type="checkbox"
     checked={includeProductSales}

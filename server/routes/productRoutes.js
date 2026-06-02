@@ -366,9 +366,21 @@ router.post(
           createdBy:
             req.user.id,
         });
+product.purchaseHistory = [
+  {
+    date: new Date(),
+    units: Number(product.stock),
+    costPrice: Number(product.costPrice),
+    total:
+      Number(product.stock) *
+      Number(product.costPrice),
+  },
+];
 
+await product.save();
       res.status(201).json(
         product
+
       );
     } catch (err) {
       console.log(err);
@@ -393,7 +405,20 @@ router.put(
       const updatedData = {
         ...req.body,
       };
+const existingProduct =
+  await Product.findOne({
+    _id: req.params.id,
+    createdBy: req.user.id,
+  });
 
+if (!existingProduct) {
+  return res.status(404).json({
+    message: "Product not found",
+  });
+}
+
+const oldStock =
+  Number(existingProduct.stock || 0);
       // ========================================
       // FINAL SELL PRICE
       // ========================================
@@ -457,7 +482,28 @@ router.put(
 
       updatedData.finalSellingPrice =
         actualSellingPrice;
+const newStock =
+  Number(updatedData.stock || 0);
 
+const addedUnits =
+  newStock - oldStock;
+
+if (addedUnits > 0) {
+  updatedData.$push = {
+    purchaseHistory: {
+      date: new Date(),
+      units: addedUnits,
+      costPrice: Number(
+        updatedData.costPrice
+      ),
+      total:
+        addedUnits *
+        Number(
+          updatedData.costPrice
+        ),
+    },
+  };
+} 
       // ========================================
       // UPDATE
       // ========================================

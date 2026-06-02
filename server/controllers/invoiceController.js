@@ -1654,9 +1654,14 @@ async (req, res) => {
       await Expense.find({
         createdBy: req.user._id
       });
+      const products = await Product.find({
+  createdBy: req.user._id
+});
 
   const includeProductSales =
 req.query.includeProductSales === "true";
+const includeProductPurchases =
+  req.query.includeProductPurchases === "true";
 const seller =
   await User.findById(
     req.user._id
@@ -1681,11 +1686,13 @@ const pdf =
   await generateSalesReportPDF(
     invoices,
     expenses,
+    products,
     sellerData,
     type,
     customStart,
     customEnd,
-    includeProductSales
+    includeProductSales,
+    includeProductPurchases
   );
 
 
