@@ -193,26 +193,31 @@ const salesProfit = filteredInvoices.reduce(
 const purchasedProducts = [];
 
 let periodPurchaseValue = 0;
-
 products.forEach(product => {
-  (product.purchaseHistory || [])
-    .forEach(entry => {
-      const d = new Date(entry.date);
+  const purchaseDate = new Date(
+    product.purchaseDate || product.createdAt
+  );
 
-      if (d >= start && d <= end) {
-        periodPurchaseValue +=
-          Number(entry.total || 0);
+  if (
+    purchaseDate >= start &&
+    purchaseDate <= end
+  ) {
+    const total =
+      Number(product.stock || 0) *
+      Number(product.costPrice || 0);
 
-        purchasedProducts.push({
-          date: entry.date,
-          name: product.name,
-          units: entry.units,
-          cp: entry.costPrice,
-          total: entry.total
-        });
-      }
+    purchasedProducts.push({
+      date: purchaseDate,
+      name: product.name,
+      units: product.stock,
+      cp: product.costPrice,
+      total,
     });
+
+    periodPurchaseValue += total;
+  }
 });
+
   const paymentModes = ["UPI", "Cash", "Card", "Cheque", "Bank Transfer"];
 
   const paymentData = paymentModes.map(mode => ({

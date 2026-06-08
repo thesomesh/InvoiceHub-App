@@ -62,7 +62,11 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
+// EXPECTED REVENUE
+expectedRevenue: {
+  type: Number,
+  default: 0,
+},
     // PROFIT PER UNIT
     profitPerUnit: {
       type: Number,
@@ -95,29 +99,13 @@ totalUnitsSold: {
   type: Number,
   default: 0,
 },
-   purchaseHistory: [
-  {
-    date: {
-      type: Date,
-      default: Date.now,
-    },
 
-    units: {
-      type: Number,
-      default: 0,
-    },
 
-    costPrice: {
-      type: Number,
-      default: 0,
-    },
-
-    total: {
-      type: Number,
-      default: 0,
-    },
-  },
-], // LOW STOCK
+purchaseDate: {
+  type: Date,
+  default: Date.now,
+},
+   //LOW STOCK
     minimumStock: {
       type: Number,
       default: 5,

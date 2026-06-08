@@ -49,13 +49,17 @@ const InventoryPage = () => {
       unit: "kg",
 
       customUnit: "",
-
+ purchaseDate:
+      new Date()
+        .toISOString()
+        .split("T")[0],
       stock: "",
 
       costPrice: "",
 
       sellingPrice: "",
       discountPercentage: "",
+      
 finalSellingPrice: "",
 minimumStock: 5,
     });
@@ -356,7 +360,8 @@ const expectedProfit =
         stock: Number(
           form.stock
         ),
-
+purchaseDate:
+  form.purchaseDate,
         costPrice: Number(
           form.costPrice
         ),
@@ -436,7 +441,14 @@ finalSellingPrice,
 
       costPrice:
         product.costPrice,
-
+purchaseDate:
+  product.purchaseDate
+    ? new Date(
+        product.purchaseDate
+      )
+        .toISOString()
+        .split("T")[0]
+    : "",
       sellingPrice:
         product.sellingPrice,
         discountPercentage:
@@ -724,7 +736,20 @@ const downloadProductReport = async () => {
         />
       )}
     </div>
+<div>
+  <label className="label">
+    Purchase Date
+  </label>
 
+  <input
+    type="date"
+    name="purchaseDate"
+    className="input"
+    value={form.purchaseDate}
+    onChange={handleChange}
+    required
+  />
+</div>
     {/* AVAILABLE STOCK */}
 
     <div>

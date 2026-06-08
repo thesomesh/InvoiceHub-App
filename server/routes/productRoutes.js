@@ -140,9 +140,23 @@ router.get(
 
       // EXPECTED RETURNS
 
-      const expectedReturns =
-        inventoryValue;
-
+  const expectedRevenue =
+  products.reduce(
+    (sum, p) =>
+      sum +
+      Number(
+        p.expectedRevenue ||
+        (
+          Number(p.stock || 0) *
+          Number(
+            p.finalSellingPrice ||
+            p.sellingPrice ||
+            0
+          )
+        )
+      ),
+    0
+  );
       // EXPECTED PROFIT
 
       const expectedProfit =
@@ -224,7 +238,7 @@ router.get(
 
         inventoryValue,
 
-        expectedReturns,
+        expectedRevenue,
 
         expectedProfit,
 
@@ -309,9 +323,11 @@ router.post(
       // ========================================
 
       const totalValue =
-        Number(stock) *
-        actualSellingPrice;
-
+  Number(stock) *
+  Number(costPrice);
+const expectedRevenue =
+  Number(stock) *
+  actualSellingPrice;
       // ========================================
       // EXPECTED PROFIT
       // ========================================
@@ -348,7 +364,7 @@ router.post(
 
           // INVENTORY
           totalValue,
-
+expectedRevenue,
           // PROFIT
           profitPerUnit,
 
@@ -361,21 +377,14 @@ router.post(
 
           // ALERT
           minimumStock,
-
+purchaseDate:
+  req.body.purchaseDate,
           // USER
           createdBy:
             req.user.id,
         });
-product.purchaseHistory = [
-  {
-    date: new Date(),
-    units: Number(product.stock),
-    costPrice: Number(product.costPrice),
-    total:
-      Number(product.stock) *
-      Number(product.costPrice),
-  },
-];
+
+
 
 await product.save();
       res.status(201).json(
@@ -460,12 +469,13 @@ const oldStock =
       // TOTAL VALUE
       // ========================================
 
-      updatedData.totalValue =
-        Number(
-          updatedData.stock
-        ) *
-        actualSellingPrice;
+    updatedData.totalValue =
+  Number(updatedData.stock) *
+  Number(updatedData.costPrice);
 
+updatedData.expectedRevenue =
+  Number(updatedData.stock) *
+  actualSellingPrice;
       // ========================================
       // EXPECTED PROFIT
       // ========================================
@@ -485,25 +495,8 @@ const oldStock =
 const newStock =
   Number(updatedData.stock || 0);
 
-const addedUnits =
-  newStock - oldStock;
 
-if (addedUnits > 0) {
-  updatedData.$push = {
-    purchaseHistory: {
-      date: new Date(),
-      units: addedUnits,
-      costPrice: Number(
-        updatedData.costPrice
-      ),
-      total:
-        addedUnits *
-        Number(
-          updatedData.costPrice
-        ),
-    },
-  };
-} 
+
       // ========================================
       // UPDATE
       // ========================================

@@ -795,13 +795,19 @@ const stats = [
   // ROW 2 — BUSINESS HEALTH
 
    {
-      label: "Inventory Worth",
+      label: "Inventory value",
     value: formatCurrency(
       inventoryStats?.inventoryValue || 0
     ),
     icon: Package,
   },
-
+{
+  label: "Expected Revenue",
+  value: formatCurrency(
+    inventoryStats?.expectedRevenue || 0
+  ),
+  icon: TrendingUp,
+},
   {
     label:
       "Completed Bills",

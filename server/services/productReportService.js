@@ -164,7 +164,13 @@ ${Number(product.totalUnitsSold || 0)}
 <td>${formatCurrency(product.totalValue)}</td>
 <td>${formatCurrency(product.totalSales || 0)}</td>
 <td>${formatCurrency(product.totalSalesProfit || 0)}</td>
-<td>${formatDateTime(product.updatedAt)}</td>
+<td>${formatDate(
+  product.purchaseDate || product.createdAt
+)}</td>
+
+<td>${formatDate(
+  product.updatedAt
+)}</td>
 </tr>
 `;
     })
@@ -626,7 +632,12 @@ INVENTORY CONTROL REPORT
   report.inventoryValue
 )}</span>
 </div>
-
+<div class="summary-row">
+<span>Expected Revenue</span>
+<span>${formatCurrency(
+  report.expectedRevenue || 0
+)}</span>
+</div>
 <div class="summary-row">
 <span>Low Stock Items</span>
 <span>${report.lowStockProducts}</span>
@@ -656,7 +667,8 @@ ALL PRODUCTS
 <th>Inventory Value</th>
 <th>Revenue</th>
 <th>Net Profit</th>
-<th>Updated</th>
+<th>Purchase Date</th>
+<th>Updated Date</th>
 </tr>
 </thead>
 
