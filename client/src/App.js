@@ -1,5 +1,5 @@
 import React from "react";
-
+import { Outlet } from "react-router-dom";
 import {
   BrowserRouter,
   Routes,
@@ -14,7 +14,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Navbar from "./components/Navbar";
-
+import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 
 // PAGES
@@ -28,7 +28,7 @@ import DashboardPage from "./pages/DashboardPage";
 import CreateInvoicePage from "./pages/CreateInvoicePage";
 
 import InvoicePreviewPage from "./pages/InvoicePreviewPage";
-
+import ReportsPage from "./pages/ReportsPage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
 
 import InventoryPage from "./pages/InventoryPage";
@@ -44,8 +44,17 @@ const AppContent = () => {
         }}
       >
         <Navbar />
+<div
+  className="flex flex-1"
+  style={{
+    minHeight: "calc(100vh - 88px)",
+  }}
+>
+  <Sidebar />
 
-        <main className="flex-1">
+ <main className="flex-1 ml-56 flex-col">
+  
+  <div className="flex-1">
           <Routes>
             <Route
               path="/"
@@ -93,6 +102,9 @@ const AppContent = () => {
       <ExpensePage />
     </ProtectedRoute>
   }
+/><Route
+  path="/reports"
+  element={<ReportsPage />}
 />
             <Route
               path="/invoices/create"
@@ -124,10 +136,14 @@ const AppContent = () => {
               }
             />
           </Routes>
+       
+          </div>
+          
         </main>
-
-        <Footer />
-      </div>
+        
+</div>
+<Footer/>
+</div>
     </BrowserRouter>
   );
 };

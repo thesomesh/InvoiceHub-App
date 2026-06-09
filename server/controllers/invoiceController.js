@@ -7,7 +7,11 @@ const User =
 const Product =
   require("../models/Product");
 const Expense = require("../models/Expense");
-
+const {
+  generatePurchaseReportPDF
+} = require(
+  "../services/purchaseReportService"
+);
 const {
   generateSalesReportPDF
 } = require("../services/salesReportService");
@@ -1634,7 +1638,85 @@ totalProfit: products.reduce(
     });
   }
 };
+const downloadPurchaseReportPDF =
+async (req, res) => {
+  try {
 
+    const {
+  type,
+  customStart,
+  customEnd,
+  analysisMonths = 3
+} = req.query;
+
+    const products =
+      await Product.find({
+        createdBy: req.user._id
+      });
+
+    const seller =
+      await User.findById(
+        req.user._id
+      );
+
+    const sellerData = {
+      _id: req.user._id,
+
+      businessName:
+        seller?.businessName ||
+        "InvoiceHub",
+
+      address:
+        seller?.address ||
+        "Business Address",
+
+      phone:
+        seller?.phone ||
+        "N/A",
+
+      email:
+        seller?.email ||
+        "N/A"
+    };
+
+    const pdf =
+      await generatePurchaseReportPDF(
+        products,
+        sellerData,
+        type,
+        customStart,
+        customEnd,
+        Number(analysisMonths)
+      );
+
+    res.writeHead(200, {
+      "Content-Type":
+        "application/pdf",
+
+      "Content-Disposition":
+        `attachment; filename="purchase-report.pdf"`,
+
+      "Content-Length":
+        pdf.length
+    });
+
+    return res.end(pdf);
+
+  } catch (error) {
+
+    console.error(
+      "Purchase PDF Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to generate purchase report",
+      error: error.message
+    });
+  }
+};
 
 const downloadSalesReportPDF =
 async (req, res) => {
@@ -1749,5 +1831,6 @@ module.exports = {
   downloadInvoicePDF,
 
   downloadProductReportPDF,
-  downloadSalesReportPDF 
+  downloadSalesReportPDF ,
+  downloadPurchaseReportPDF
 };

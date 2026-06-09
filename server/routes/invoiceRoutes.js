@@ -14,6 +14,7 @@ const {
   recalculateInvoices,
   downloadInvoicePDF,
     downloadProductReportPDF,
+    downloadPurchaseReportPDF,
     downloadSalesReportPDF
 } = require(
   "../controllers/invoiceController"
@@ -289,7 +290,10 @@ router.get(
   "/sales-report",
   downloadSalesReportPDF
 );
-
+router.get(
+  "/purchase-report",
+  downloadPurchaseReportPDF
+);
 router.get(
   "/:id",
 

@@ -15,21 +15,6 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  const navLinks = [
-    { to: "/dashboard", label: "Dashboard" },
-    {
-    to: "/inventory",
-    label: "Inventory",
-  },
-    {
-    to: "/expenses",
-    label: "Expenses",
-  },
-    { to: "/invoices/create", label: "New Invoice" },
-    { to: "/profile/business", label: "Business Profile" },
-
-  ];
-
   return (
     <header
       className="sticky top-0 z-40 border-b"
@@ -37,25 +22,6 @@ const Navbar = () => {
     >
      <div className="w-full px-4 md:px-8 h-22 flex items-center justify-between">
         <BrandLogo />
-
-        {isAuthenticated && (
-          <nav className="hidden sm:flex items-center gap-1">
-            {navLinks.map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-                style={{
-                  color: location.pathname === to ? "var(--accent)" : "var(--text-muted)",
-                  background: location.pathname === to ? "var(--accent-soft)" : "transparent",
-                }}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-        )}
-
         <div className="flex items-center gap-2">
           <label id="theme-toggle-button" title={dark ? "Switch to Light mode" : "Switch to Dark mode"}>
             <input
