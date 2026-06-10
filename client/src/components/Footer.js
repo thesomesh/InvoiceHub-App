@@ -2,7 +2,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer
+    <Footer
       className="border-t ml-56"
       style={{
         borderColor:
@@ -83,7 +83,7 @@ const Footer = () => {
           InvoiceHub • Modern invoicing made simple.
         </div>
       </div>
-    </footer>
+    </Footer>
   );
 };
 

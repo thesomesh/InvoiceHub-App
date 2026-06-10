@@ -14,11 +14,11 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import Navbar from "./components/Navbar";
+
+import { useLocation } from "react-router-dom";
+// PAGES
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
-
-// PAGES
-
 import LoginPage from "./pages/LoginPage";
 
 import RegisterPage from "./pages/RegisterPage";
@@ -34,8 +34,13 @@ import BusinessProfilePage from "./pages/BusinessProfilePage";
 import InventoryPage from "./pages/InventoryPage";
 import ExpensePage from "./pages/ExpensePage";
 const AppContent = () => {
+  const location = useLocation();
+
+  const isAuthPage =
+    location.pathname === "/login" ||
+    location.pathname === "/register";
+
   return (
-    <BrowserRouter>
       <div
         className="min-h-screen flex flex-col"
         style={{
@@ -50,9 +55,13 @@ const AppContent = () => {
     minHeight: "calc(100vh - 88px)",
   }}
 >
-  <Sidebar />
+ {!isAuthPage && <Sidebar />}
 
- <main className="flex-1 ml-56 flex-col">
+<main
+  className={`flex-1 flex-col ${
+    !isAuthPage ? "ml-56" : ""
+  }`}
+>
   
   <div className="flex-1">
           <Routes>
@@ -142,9 +151,9 @@ const AppContent = () => {
         </main>
         
 </div>
-<Footer/>
+{!isAuthPage && <Footer />}
 </div>
-    </BrowserRouter>
+
   );
 };
 
@@ -152,7 +161,9 @@ const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   );
