@@ -420,7 +420,11 @@ const invoiceSchema =
       // ========================================
       // PAYMENT METHOD
       // ========================================
-
+accountId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Account",
+  default: null,
+},
       paymentMethod: {
         type: String,
 
@@ -442,6 +446,11 @@ paymentHistory: [
   {
     amount: Number,
     method: String,
+      accountId: {
+      type:
+        mongoose.Schema.Types.ObjectId,
+      ref: "Account",
+    },
     date: {
       type: Date,
       default: Date.now

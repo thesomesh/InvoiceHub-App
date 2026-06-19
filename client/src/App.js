@@ -20,7 +20,7 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import LoginPage from "./pages/LoginPage";
-
+import AccountsPage from "./pages/AccountsPage";
 import RegisterPage from "./pages/RegisterPage";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -110,8 +110,20 @@ const AppContent = () => {
     <ProtectedRoute>
       <ExpensePage />
     </ProtectedRoute>
+  }    
+/>    
+
+
+<Route
+  path="/accounts"
+  element={
+    <ProtectedRoute>
+      <AccountsPage />
+    </ProtectedRoute>
   }
-/><Route
+/>
+
+<Route
   path="/reports"
   element={<ReportsPage />}
 />

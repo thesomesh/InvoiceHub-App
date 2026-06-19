@@ -10,6 +10,7 @@ import {
   FileText,
   FilePlus2,
   Building2,
+  Wallet
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -20,6 +21,11 @@ const Sidebar = () => {
       to: "/dashboard",
       label: "Dashboard",
       icon: LayoutDashboard,
+    },
+     {
+      to: "/invoices/create",
+      label: "New Invoice",
+      icon:FilePlus2 ,
     },
     {
       to: "/inventory",
@@ -36,11 +42,11 @@ const Sidebar = () => {
       label: "Reports",
       icon: BarChart3 ,
     },
-    {
-      to: "/invoices/create",
-      label: "New Invoice",
-      icon:FilePlus2 ,
-    },
+   {
+  to: "/accounts",
+  label: "Accounts",
+  icon: Wallet,
+},
     {
       to: "/profile/business",
       label: "Business Profile",

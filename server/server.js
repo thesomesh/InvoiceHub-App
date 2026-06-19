@@ -5,9 +5,16 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
+const accountRoutes =
+  require("./routes/accountRoutes");
+
+const ledgerRoutes =
+  require("./routes/ledgerRoutes");
+  
 const expenseRoutes = require("./routes/expenseRoutes");
 const productRoutes =
   require("./routes/productRoutes");
+
 const app = express();
 
 // Connect to MongoDB
@@ -42,6 +49,17 @@ app.use(
   "/api/expenses",
   expenseRoutes
 );
+
+
+app.use("/api/accounts", accountRoutes);
+app.use("/api/ledger", ledgerRoutes);
+
+
+
+
+
+
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.originalUrl} not found` });

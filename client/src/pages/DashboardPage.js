@@ -28,6 +28,7 @@ import { useInvoices } from "../hooks/useInvoices";
 import { invoiceAPI } from "../services/api";
 
 import { productAPI } from "../services/productAPI";
+import { accountAPI } from "../services/accountAPI";
 
 import {
   EmptyState,
@@ -46,7 +47,52 @@ const DashboardPage = () => {
 
   const navigate =
     useNavigate();
+const [accounts, setAccounts] =
+  useState([]);
 
+const [accountId, setAccountId] =
+  useState("");
+  const [
+  refundModal,
+  setRefundModal
+] = useState(false);
+
+const [
+  refundMethod,
+  setRefundMethod
+] = useState("Cash");
+
+const [
+  refundAccountId,
+  setRefundAccountId
+] = useState("");
+const [
+  refundAmount,
+  setRefundAmount
+] = useState("");
+const cashAccount =
+  accounts.find(
+    (a) =>
+      a.name ===
+      "Cash"
+  );
+
+useEffect(() => {
+
+  if (
+    refundMethod ===
+      "Cash" &&
+    cashAccount
+  ) {
+    setRefundAccountId(
+      cashAccount._id
+    );
+  }
+
+}, [
+  refundMethod,
+  cashAccount
+]);
 const cardClass = "card rounded-3xl";
 const inputClass = "input";
 const [expenses, setExpenses] = useState([]);
@@ -207,8 +253,10 @@ setCurrentPage(1);
 
  useEffect(() => {
   load();
+    fetchAccounts();
   fetchDashboardStats();
   fetchExpenses();
+
 }, [load]);
   // ========================================
   // FETCH STATS
@@ -231,6 +279,20 @@ const fetchExpenses = async () => {
   try {
     const res = await expenseAPI.getAll();
     setExpenses(res.data || []);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+
+const fetchAccounts = async () => {
+  try {
+    const res =
+      await accountAPI.getAll();
+
+    setAccounts(
+      res.data || []
+    );
   } catch (err) {
     console.log(err);
   }
@@ -339,67 +401,82 @@ const fetchExpenses = async () => {
   // CANCELLED
   // ========================================
 
+if (
+  status ===
+  "cancelled"
+) {
+
+  // PAID INVOICE -> OPEN REFUND MODAL
+
   if (
-    status ===
-    "cancelled"
+    invoice.status ===
+    "paid"
   ) {
-    const confirmCancel =
-      window.confirm(
-        invoice.status ===
-          "paid"
-          ? "Cancel & refund this paid invoice?"
-          : "Cancel this invoice?"
-      );
 
-    if (!confirmCancel)
-      return;
+    setSelectedInvoice(
+      invoice
+    );
 
-    try {
-      setStatusSaving((p) => ({
-        ...p,
-        [invoice._id]: true,
-      }));
+    setRefundMethod(
+      "Cash"
+    );
 
-      await updateStatus(
-        invoice._id,
-        {
-          status:
-            "cancelled",
-
-          paymentMethod:
-            invoice.status ===
-            "paid"
-              ? "Refunded"
-              : "Not Paid Yet",
-
-          amountPaid:
-            invoice.status ===
-            "paid"
-              ? 0
-              : invoice.amountPaid ||
-                0,
-
-          dueAmount: 0,
-        }
-      );
-
-      load();
-    } catch (err) {
-      console.log(err);
-
-      setActionError(
-        "Failed to cancel invoice"
-      );
-    } finally {
-      setStatusSaving((p) => ({
-        ...p,
-        [invoice._id]: false,
-      }));
-    }
+    setRefundAccountId(
+      ""
+    );
+setRefundAmount(
+  invoice.amountPaid || 0
+);
+    setRefundModal(
+      true
+    );
 
     return;
   }
 
+  // NORMAL CANCEL
+
+  const confirmCancel =
+    window.confirm(
+      "Cancel this invoice?"
+    );
+
+  if (!confirmCancel)
+    return;
+
+  try {
+
+    setStatusSaving((p) => ({
+      ...p,
+      [invoice._id]: true,
+    }));
+
+    await updateStatus(
+      invoice._id,
+      {
+        status:
+          "cancelled",
+      }
+    );
+
+    load();
+
+  } catch (err) {
+
+    setActionError(
+      "Failed to cancel invoice"
+    );
+
+  } finally {
+
+    setStatusSaving((p) => ({
+      ...p,
+      [invoice._id]: false,
+    }));
+  }
+
+  return;
+}
   // ========================================
   // PAID FLOW
   // ========================================
@@ -499,7 +576,7 @@ if (amountPaid > maxAmount) {
             status,
 
             paymentMethod,
-
+  accountId,
            amountPaid:
   amountPaid,
 
@@ -831,11 +908,11 @@ const stats = [
     icon: Clock3,
   },
 
-  {
-  label: "Net Profit Margin",
-    value: `${overallProfitMargin}%`,
-    icon: TrendingUp,
-  },
+  // {
+  // label: "Net Profit Margin",
+  //   value: `${overallProfitMargin}%`,
+  //   icon: TrendingUp,
+  // },
 
   
 
@@ -1752,7 +1829,36 @@ className={`${inputClass} h-14 text-lg`}
           </select>
 
         </div>
+{paymentMethod !== "Cash" && (
+  <div>
+    <label className="label">
+      Deposit To Account
+    </label>
 
+    <select
+      className={inputClass}
+      value={accountId}
+      onChange={(e) =>
+        setAccountId(
+          e.target.value
+        )
+      }
+    >
+      <option value="">
+        Select Account
+      </option>
+
+      {accounts.map((acc) => (
+        <option
+          key={acc._id}
+          value={acc._id}
+        >
+          {acc.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
         {/* Due Preview */}
         <div
           className={`rounded-2xl p-5 border ${
@@ -1850,7 +1956,204 @@ className={`${inputClass} h-14 text-lg`}
         message={actionError}
         type="error"
       />
+{refundModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
+    <div className="card p-6 w-full max-w-md">
+
+      <h2 className="text-2xl font-bold mb-5">
+        Refund Invoice
+      </h2>
+
+      <div className="space-y-4">
+<div className="rounded-xl bg-red-50 p-4">
+
+  <div className="flex justify-between">
+
+    <span>
+      Amount Already Paid
+    </span>
+
+    <strong>
+      {formatCurrency(
+        selectedInvoice?.amountPaid || 0
+      )}
+    </strong>
+
+  </div>
+
+</div>
+<div>
+
+  <label className="label">
+    Amount To Refund
+  </label>
+
+  <input
+    type="number"
+    min="1"
+    max={
+      selectedInvoice?.amountPaid || 0
+    }
+    className={inputClass}
+    value={refundAmount}
+    onChange={(e) =>
+      setRefundAmount(
+        e.target.value
+      )
+    }
+  />
+
+</div>
+        <div>
+          <label className="label">
+            Refund Method
+          </label>
+
+          <select
+            className={inputClass}
+            value={refundMethod}
+            onChange={(e) =>
+              setRefundMethod(
+                e.target.value
+              )
+            }
+          >
+            <option value="Cash">
+              Cash
+            </option>
+
+            <option value="UPI">
+              UPI
+            </option>
+
+            <option value="Card">
+              Card
+            </option>
+
+            <option value="Bank Transfer">
+              Bank Transfer
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label className="label">
+            Refund From Account
+          </label>
+
+          <select
+            className={inputClass}
+            value={
+              refundAccountId
+            }
+            onChange={(e) =>
+              setRefundAccountId(
+                e.target.value
+              )
+            }
+          >
+            <option value="">
+              Select Account
+            </option>
+
+            {accounts.map(
+              (acc) => (
+                <option
+                  key={acc._id}
+                  value={acc._id}
+                >
+                  {acc.name}
+                    {" - "}
+  {formatCurrency(
+    acc.currentBalance || 0
+  )}
+                </option>
+              )
+            )}
+            
+          </select>
+        </div>
+
+        <button
+        
+          className="btn-danger w-full"
+          
+          onClick={async () => {
+            
+if (
+  Number(refundAmount) <= 0
+) {
+  alert(
+    "Enter refund amount"
+  );
+  return;
+}
+
+if (
+  Number(refundAmount) >
+  Number(
+    selectedInvoice.amountPaid
+  )
+) {
+  alert(
+    "Refund cannot exceed paid amount"
+  );
+  return;
+}
+const account =
+  accounts.find(
+    (a) =>
+      a._id ===
+      refundAccountId
+  );
+
+if (
+  account &&
+  account.currentBalance <
+    Number(refundAmount)
+) {
+  alert(
+    "Insufficient account balance"
+  );
+
+  return;
+}
+            await updateStatus(
+              selectedInvoice._id,
+              {
+                status:
+                  "cancelled",
+
+                paymentMethod:
+                  "Refunded",
+
+                refundMethod,
+
+                refundAccountId,
+                 refundAmount:
+      Number(
+        refundAmount
+      ),
+              }
+            );
+
+            setRefundModal(
+              false
+            );
+
+            load();
+          }}
+        >
+          Refund Invoice
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </div>
     </div>
   );

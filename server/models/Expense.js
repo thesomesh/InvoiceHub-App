@@ -18,7 +18,11 @@ const expenseSchema = new mongoose.Schema(
       default: "General",
       trim: true,
     },
-
+accountId: {
+  type:
+    mongoose.Schema.Types.ObjectId,
+  ref: "Account",
+},
     // PAYMENT MODE
 
     paymentMode: {

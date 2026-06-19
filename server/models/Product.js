@@ -30,6 +30,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    totalPurchasedQty: {
+  type: Number,
+  default: 0,
+},
 
     // COST PRICE
     costPrice: {

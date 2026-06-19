@@ -141,7 +141,7 @@ products.forEach((product) => {
     purchaseDate >= start &&
     purchaseDate <= end
   ) {
-    const units = Number(product.stock || 0);
+  const units = Number(product.totalPurchasedQty || 0);
 
     const costPrice = Number(
       product.costPrice || 0
@@ -296,7 +296,7 @@ for (
     .reduce(
       (sum, p) =>
         sum +
-        Number(p.stock || 0) *
+      Number(p.totalPurchasedQty || 0) *
         Number(p.costPrice || 0),
       0
     );

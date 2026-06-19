@@ -141,7 +141,8 @@ const InvoicePreviewPage = () => {
         <section className="invoice-meta-grid">
           <article className="invoice-meta-card hover:shadow-[0_20px_60px_rgba(79,70,229,0.25)] hover:-translate-y-1 transition-all duration-300">
             <p className="invoice-meta-label">From</p>
-            <p className="invoice-meta-strong">{sellerName}</p>
+        
+            {user?.businessName && <p className="invoice-meta-strong">{user.businessName}</p>}
             {user?.phone && <p className="invoice-meta-muted">{user.phone}</p>}
             {user?.address && <p className="invoice-meta-muted">{user.address}</p>}
             {user?.gstin && <p className="invoice-meta-muted">GSTIN: {user.gstin}</p>}
@@ -343,7 +344,17 @@ const InvoicePreviewPage = () => {
         "Not Paid Yet"}
     </strong>
   </div>
+{invoice.accountId?.name && (
+  <div className="invoice-summary-row">
+    <span>
+      Deposit Account
+    </span>
 
+    <strong>
+      {invoice.accountId.name}
+    </strong>
+  </div>
+)}
   {/* PAID */}
 
   <div className="invoice-summary-row">
@@ -411,7 +422,11 @@ const InvoicePreviewPage = () => {
                   ? "Refunded"
                   : payment.method}
               </p>
-
+{payment.accountId?.name && (
+  <p className="text-sm text-gray-500">
+    {payment.accountId.name}
+  </p>
+)}
               <p className="text-sm text-gray-500">
                 {new Date(
   payment.date

@@ -349,7 +349,7 @@ const expectedRevenue =
           unit,
 
           stock,
-
+  totalPurchasedQty: stock,
           costPrice,
 
           // ORIGINAL SELL PRICE
@@ -495,7 +495,13 @@ updatedData.expectedRevenue =
 const newStock =
   Number(updatedData.stock || 0);
 
-
+if (newStock > oldStock) {
+  updatedData.totalPurchasedQty =
+    Number(
+      existingProduct.totalPurchasedQty || 0
+    ) +
+    (newStock - oldStock);
+}
 
       // ========================================
       // UPDATE

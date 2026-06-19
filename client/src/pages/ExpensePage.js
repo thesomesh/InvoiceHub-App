@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { expenseAPI } from "../services/expenseAPI";
-
+import { accountAPI } from "../services/accountAPI";
 const paymentModes = [
   "Cash",
   "UPI",
@@ -16,6 +16,7 @@ const formatCurrency = (value) =>
 
 const ExpensePage = () => {
   const [expenses, setExpenses] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 const [currentPage, setCurrentPage] = useState(1);
 const expensesPerPage = 10;
   const [filters, setFilters] = useState({
@@ -30,6 +31,7 @@ const expensesPerPage = 10;
     category: "General",
     customCategory: "",
     paymentMode: "",
+    accountId: "",
     amount: "",
     date: "",
     notes: "",
@@ -50,6 +52,7 @@ const expensesPerPage = 10;
 
   useEffect(() => {
     fetchExpenses();
+      fetchAccounts();
   }, []);
 
   const fetchExpenses = async () => {
@@ -60,13 +63,55 @@ const expensesPerPage = 10;
       console.log(err);
     }
   };
+const fetchAccounts =
+async () => {
+  try {
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const res =
+      await accountAPI.getAll();
+
+    setAccounts(
+      res.data || []
+    );
+
+  } catch(err) {
+    console.log(err);
+  }
+};
+ const handleChange = (e) => {
+
+  const { name, value } =
+    e.target;
+
+  const updatedForm = {
+    ...form,
+    [name]: value,
   };
+
+  if (name === "paymentMode") {
+
+    if (value === "Cash") {
+
+      const cashAccount =
+        accounts.find(
+          (a) =>
+            a.type === "Cash"
+        );
+
+      if (cashAccount) {
+        updatedForm.accountId =
+          cashAccount._id;
+      }
+
+    } else {
+
+      updatedForm.accountId = "";
+
+    }
+  }
+
+  setForm(updatedForm);
+};
 
   const resetFilters = () => {
     setFilters({
@@ -77,10 +122,30 @@ const expensesPerPage = 10;
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const payload = {
+  const selectedAccount =
+    accounts.find(
+      acc =>
+        acc._id === form.accountId
+    );
+
+  if (
+    selectedAccount &&
+    Number(form.amount) >
+    Number(
+      selectedAccount.currentBalance
+    )
+  ) {
+    alert(
+      `Insufficient balance. Available: ₹${selectedAccount.currentBalance}`
+    );
+
+    return;
+  }
+
+  const payload = {
       ...form,
       category:
         form.category === "custom"
@@ -168,6 +233,7 @@ const totalPages =
               type="text"
               name="title"
               className="input"
+              required
               placeholder="Enter expense title"
               value={form.title}
               onChange={handleChange}
@@ -225,6 +291,7 @@ const totalPages =
             <select
               name="paymentMode"
               className="input"
+              required
               value={
                 form.paymentMode
               }
@@ -248,7 +315,36 @@ const totalPages =
               )}
             </select>
           </div>
+<div>
+  <label className="label">
+    Account
+  </label>
 
+<select
+  name="accountId"
+  disabled={
+    form.paymentMode ===
+    "Cash"
+  }
+    value={form.accountId}
+    onChange={handleChange}
+    className="input"
+    required
+  >
+    <option value="">
+      Select Account
+    </option>
+
+    {accounts.map((acc) => (
+      <option
+        key={acc._id}
+        value={acc._id}
+      >
+        {acc.name}
+      </option>
+    ))}
+  </select>
+</div>
           <div>
             <label className="label">
               Amount

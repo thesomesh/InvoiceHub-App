@@ -13,7 +13,9 @@ const [downloadingPurchase,
 const [downloadingSales,
   setDownloadingSales] =
   useState(false);
-
+const [includeProductSales,
+  setIncludeProductSales] =
+  useState(false);
   const [salesStartDate,
   setSalesStartDate] =
   useState("");
@@ -82,7 +84,8 @@ const downloadSalesReport = async () => {
       params: {
   type: salesPeriod,
   customStart: salesStartDate,
-  customEnd: salesEndDate
+  customEnd: salesEndDate,
+    includeProductSales
 },
         responseType: "blob"
       }
@@ -277,9 +280,17 @@ const downloadPurchaseReport = async () => {
   <div className="mt-6"> </div>     
         <div className="space-y-3 mb-5">
           <label className="flex gap-2">
-            <input type="checkbox" />
-            Product Sales Details
-          </label>
+  <input
+    type="checkbox"
+    checked={includeProductSales}
+    onChange={(e) =>
+      setIncludeProductSales(
+        e.target.checked
+      )
+    }
+  />
+  Product Sales Details
+</label>
         </div>
   <div className="mt-6"> </div>     
       <button

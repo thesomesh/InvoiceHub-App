@@ -5,6 +5,7 @@ import { invoiceAPI } from "../services/api";
 import { calculateTotals, formatCurrency } from "../utils/calculations";
 import { Alert } from "../components/UI";
 import api from "../services/api";
+import { accountAPI } from "../services/accountAPI";
 const PlusIcon = () => (
   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -42,6 +43,28 @@ const [
   amountPaid,
   setAmountPaid,
 ] = useState("");
+const [accounts, setAccounts] = useState([]);
+const [accountId, setAccountId] = useState("");
+const cashAccount =
+  accounts.find(
+    a =>
+      a.name ===
+      "Cash"
+  );useEffect(() => {
+
+  if (
+    paymentMethod === "Cash" &&
+    cashAccount
+  ) {
+    setAccountId(
+      cashAccount._id
+    );
+  }
+
+}, [
+  paymentMethod,
+  cashAccount
+]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [products, setProducts] = useState([]);
@@ -82,11 +105,36 @@ const finalGrandTotal =
     setCustomer((c) => ({ ...c, [e.target.name]: e.target.value }));
     setFieldErrors((p) => ({ ...p, [`customer.${e.target.name}`]: "" }));
   };
+useEffect(() => {
+  if (!user) return;
 
+  const defaultTax =
+    Number(
+      user.defaultTaxRate ?? 0
+    );
+
+  if (
+    Number.isFinite(
+      defaultTax
+    )
+  ) {
+    setTaxRate(
+      defaultTax
+    );
+  }
+
+  setNotes(
+    String(
+      user.defaultNote || ""
+    )
+  );
+
+}, [user?.id]);
 
 
 useEffect(() => {
   fetchProducts();
+    fetchAccounts();
 }, []);
 
 const fetchProducts = async () => {
@@ -98,7 +146,14 @@ const fetchProducts = async () => {
     setProducts([]);
   }
 };
-
+const fetchAccounts = async () => {
+  try {
+    const res = await accountAPI.getAll();
+    setAccounts(res.data || []);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
 
 const updateItem = (
@@ -245,7 +300,8 @@ roundOff,
     status === "cancelled"
       ? "Not Paid Yet"
       : paymentMethod,
-
+accountId:
+  accountId || undefined,
   amountPaid:
      Number(amountPaid || 0),
 
@@ -1074,7 +1130,37 @@ discountRate:
             )}
           </select>
         </div>
+{status !== "pending" &&
+ status !== "cancelled" &&
+ paymentMethod !== "Cash" && (
+  <div>
+    <label className="label">
+      Deposit To Account
+    </label>
 
+    <select
+      className="input"
+      value={accountId}
+      onChange={(e) =>
+        setAccountId(e.target.value)
+      }
+      required
+    >
+      <option value="">
+        Select Account
+      </option>
+
+      {accounts.map((acc) => (
+        <option
+          key={acc._id}
+          value={acc._id}
+        >
+          {acc.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
         {/* RECEIVED */}
 
         <div>

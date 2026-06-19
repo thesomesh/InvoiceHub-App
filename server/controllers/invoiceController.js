@@ -20,7 +20,13 @@ const {
 } = require(
   "../utils/calculateInvoice"
 );
+const Account =
+require("../models/Account");
 
+const Ledger =
+require(
+ "../models/LedgerTransaction"
+);
 const {
   generateInventoryPDF
 } = require("../services/productReportService");
@@ -69,6 +75,7 @@ const createInvoice =
           "Not Paid Yet",
 
         amountPaid = 0,
+        accountId,
       } = req.body;
 
       // ========================================
@@ -185,6 +192,7 @@ if (finalAmountPaid > 0) {
   paymentHistory.push({
     amount: finalAmountPaid,
     method: finalPaymentMethod,
+      accountId,
     date: new Date(),
   });
 }
@@ -228,7 +236,7 @@ const invoice = await Invoice.create({
 
   paymentMethod:
     finalPaymentMethod,
-
+accountId,
   amountPaid:
     finalAmountPaid,
 
@@ -304,19 +312,23 @@ for (const item of invoice.items) {
   if (product.stock < 0) {
     product.stock = 0;
   }
+product.totalValue =
+  Number(product.stock) *
+  Number(product.costPrice || 0);
 
-  product.totalValue =
-    Number(product.stock) *
-    Number(
-      product.finalSellingPrice ||
-      product.sellingPrice
-    );
+product.expectedRevenue =
+  Number(product.stock) *
+  Number(
+    product.finalSellingPrice ||
+    product.sellingPrice ||
+    0
+  );
 
-  product.expectedProfit =
-    Number(product.stock) *
-    Number(
-      product.profitPerUnit
-    );
+product.expectedProfit =
+  Number(product.stock) *
+  Number(
+    product.profitPerUnit
+  );
 
   const finalRevenue =
   Number(item.finalRevenue || 0);
@@ -425,7 +437,54 @@ await product.save();
 
 await invoice.save();
 
+if (
+  finalAmountPaid > 0 &&
+  accountId
+) {
 
+  const account =
+    await Account.findOne({
+      _id: accountId,
+      createdBy:
+        req.user._id,
+    });
+
+  if (account) {
+
+    account.currentBalance +=
+      Number(finalAmountPaid);
+
+    await account.save();
+
+    await Ledger.create({
+      accountId:
+        account._id,
+
+      particulars:
+        `Invoice ${invoice.invoiceNumber}`,
+
+      credit:
+        Number(finalAmountPaid),
+
+      debit: 0,
+
+      balanceAfter:
+        account.currentBalance,
+
+      sourceType:
+        "invoice",
+
+      sourceId:
+        invoice._id,
+
+      note:
+        customer?.name || "",
+
+      createdBy:
+        req.user._id,
+    });
+  }
+}
 // 3. RESPONSE
 res.status(201).json({
   success: true,
@@ -452,6 +511,7 @@ const {
   search,
   customer,
   paymentMethod,
+  accountId,
   fromDate,
   toDate,
 } = req.query;
@@ -539,13 +599,16 @@ const getInvoiceById =
     next
   ) => {
     try {
-      const invoice =
-        await Invoice.findOne({
-          _id: req.params.id,
-
-          userId:
-            req.user._id,
-        });
+    const invoice =
+  await Invoice.findOne({
+    _id: req.params.id,
+    userId: req.user._id,
+  })
+  .populate("accountId", "name")
+  .populate(
+    "paymentHistory.accountId",
+    "name"
+  );
 
       if (!invoice) {
         return res
@@ -648,7 +711,9 @@ const finalProfit =
 item.finalProfit = finalProfit;
 item.actualRevenue = actualRevenue;
 item.totalCost = totalCost;
-     const revenueDelta = 0;
+    const revenueDelta =
+  actualRevenue *
+  (newRatio - oldRatio);
 
 const collectedDelta =
   (invoice.amountPaid - oldAmountPaid) *
@@ -664,7 +729,9 @@ const collectedDelta =
         Number(
           product.totalCollected || 0
         ) + collectedDelta;
-const profitDelta = finalProfit;
+const profitDelta =
+  finalProfit *
+  (newRatio - oldRatio);
       product.totalSalesProfit =
         Number(
           product.totalSalesProfit || 0
@@ -702,18 +769,24 @@ const updateInvoiceStatus =
       }
 const oldAmountPaid =
   invoice.amountPaid || 0;
-      const {
-        status,
-
-        paymentMethod,
-
-        amountPaid,
-      } = req.body;
+  const {
+  status,
+  paymentMethod,
+  amountPaid,
+  accountId,
+  refundAccountId,
+  refundMethod,
+    refundAmount,
+} = req.body;
 
       // ========================================
       // CANCELLED
       // ========================================
-if (status === "cancelled") {
+if (
+  status === "cancelled"
+) {
+
+
 
   let distributedRoundOff = 0;
   // RESTORE INVENTORY
@@ -803,12 +876,31 @@ product.stock =
 // INVENTORY VALUE
 product.totalValue =
   Number(product.stock) *
-  returnedUnitPrice;
+  Number(product.costPrice);
+
+// EXPECTED REVENUE
+product.expectedRevenue =
+  Number(product.stock) *
+  Number(
+    product.finalSellingPrice ||
+    product.sellingPrice ||
+    0
+  );
 
 // EXPECTED PROFIT
 product.expectedProfit =
   Number(product.stock) *
-  Number(product.profitPerUnit);
+  Number(
+    product.profitPerUnit || 0
+  );
+
+// REVERSE SOLD QTY
+product.totalUnitsSold =
+  Math.max(
+    0,
+    Number(product.totalUnitsSold || 0) -
+      returnedQty
+  );
 // REVERSE SALES
 product.totalSales =
   Math.round(
@@ -855,13 +947,69 @@ if (
 await product.save();
   }
 if (invoice.amountPaid > 0) {
-  invoice.paymentHistory.push({
-    amount: -Number(
-      invoice.amountPaid
-    ),
-    method: "Refund",
-    date: new Date(),
+ invoice.paymentHistory.push({
+ amount:
+  -Number(refundAmount),
+  method:
+    refundMethod || "Refund",
+
+  accountId:
+    refundAccountId,
+
+  date: new Date(),
+});
+}
+// REFUND ACCOUNT BALANCE
+
+if (
+  invoice.amountPaid > 0 &&
+  refundAccountId
+) {
+  const account =
+    await Account.findOne({
+      _id: refundAccountId,
+      createdBy: req.user._id,
+    });
+if (
+  account.currentBalance <
+  Number(refundAmount)
+) {
+  return res.status(400).json({
+    message:
+      "Insufficient balance in account",
   });
+}
+  if (account) {
+    account.currentBalance -=
+     Number(refundAmount);
+
+    await account.save();
+
+    await Ledger.create({
+      accountId:
+        account._id,
+
+      particulars:
+        `Refund ${invoice.invoiceNumber}`,
+
+    debit:
+  Number(refundAmount),
+
+      credit: 0,
+
+      balanceAfter:
+        account.currentBalance,
+
+      sourceType:
+        "refund",
+
+      sourceId:
+        invoice._id,
+
+      createdBy:
+        req.user._id,
+    });
+  }
 }
   // UPDATE INVOICE
   invoice.status = "cancelled";
@@ -896,6 +1044,10 @@ if (invoice.amountPaid > 0) {
     amount: paid,
     method: paymentMethod,
     date: new Date(),
+     
+  ...(accountId
+    ? { accountId }
+    : {}),
   });
 
   invoice.amountPaid =
@@ -903,7 +1055,30 @@ if (invoice.amountPaid > 0) {
       totalPaid,
       invoice.total
     );
+if (paid > 0 && accountId) {
+  const account =
+    await Account.findOne({
+      _id: accountId,
+      createdBy: req.user._id,
+    });
 
+  if (account) {
+    account.currentBalance += paid;
+
+    await account.save();
+
+    await Ledger.create({
+      accountId: account._id,
+      particulars: `Invoice ${invoice.invoiceNumber}`,
+      credit: paid,
+      debit: 0,
+      balanceAfter: account.currentBalance,
+      sourceType: "invoice",
+      sourceId: invoice._id,
+      createdBy: req.user._id,
+    });
+  }
+}
   invoice.dueAmount =
     Math.max(
       invoice.total -
@@ -957,6 +1132,10 @@ if (status === "partial") {
     amount: paid,
     method: paymentMethod,
     date: new Date(),
+ 
+  ...(accountId
+    ? { accountId }
+    : {}),
   });
 
   if (totalPaid >= invoice.total) {
@@ -1505,6 +1684,15 @@ const downloadProductReportPDF = async (req, res) => {
         Number(p.totalValue || 0),
       0
     ),
+    expectedRevenue:
+  products.reduce(
+    (sum, p) =>
+      sum +
+      Number(
+        p.expectedRevenue || 0
+      ),
+    0  
+  ),   
 totalSales: products.reduce(
   (sum, p) =>
     sum + Number(p.totalSales || 0),
