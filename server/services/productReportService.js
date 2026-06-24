@@ -699,6 +699,7 @@ TOTAL
 <td>${formatCurrency(report.totalSales)}</td>
 <td>${formatCurrency(report.totalProfit)}</td>
 <td>-</td>
+<td>-</td>
 </tr>
 </tfoot>
 </table>

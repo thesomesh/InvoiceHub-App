@@ -22,7 +22,11 @@ const itemSchema =
 
         trim: true,
       },
-
+category: {
+  type: String,
+  default: "General",
+  trim: true,
+},
       // ========================================
       // QUANTITY
       // ========================================

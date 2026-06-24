@@ -1186,7 +1186,9 @@ discountRate:
      status === "pending" ||
     status ===
     "cancelled"
- 
+ ||
+  status ===
+    "paid"
   }
 />
           

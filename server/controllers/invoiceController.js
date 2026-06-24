@@ -81,6 +81,17 @@ const createInvoice =
       // ========================================
       // CALCULATE
       // ========================================
+
+      for (const item of items) {
+  const product = await Product.findOne({
+    name: item.name,
+    createdBy: req.user._id,
+  });
+
+  if (product) {
+    item.category = product.category;
+  }
+}
 const calculated =
   calculateInvoice({
     items,
@@ -711,31 +722,16 @@ const finalProfit =
 item.finalProfit = finalProfit;
 item.actualRevenue = actualRevenue;
 item.totalCost = totalCost;
-    const revenueDelta =
-  actualRevenue *
-  (newRatio - oldRatio);
-
+    
 const collectedDelta =
   (invoice.amountPaid - oldAmountPaid) *
   itemShare;
 
 
-      product.totalSales =
-        Number(
-          product.totalSales || 0
-        ) + revenueDelta;
-
       product.totalCollected =
         Number(
           product.totalCollected || 0
         ) + collectedDelta;
-const profitDelta =
-  finalProfit *
-  (newRatio - oldRatio);
-      product.totalSalesProfit =
-        Number(
-          product.totalSalesProfit || 0
-        ) + profitDelta;
 
       await product.save();
     }
@@ -1998,7 +1994,6 @@ const pdf =
 };
 
 
-
 // ========================================
 // EXPORTS
 // ========================================
@@ -2020,5 +2015,5 @@ module.exports = {
 
   downloadProductReportPDF,
   downloadSalesReportPDF ,
-  downloadPurchaseReportPDF
+  downloadPurchaseReportPDF,
 };

@@ -15,7 +15,8 @@ const {
   downloadInvoicePDF,
     downloadProductReportPDF,
     downloadPurchaseReportPDF,
-    downloadSalesReportPDF
+    downloadSalesReportPDF,
+  
 } = require(
   "../controllers/invoiceController"
 );

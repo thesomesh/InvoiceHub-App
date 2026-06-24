@@ -687,10 +687,6 @@ ${row("Cancelled Invoices", invoices.filter(i => {
 ${row("Cash Inflow", formatCurrency(collected))}
 ${row("Expenses", formatCurrency(expenseTotal))}
 ${row("Inventory Value", formatCurrency(inventoryValue))}
-${row(
-  "Product Purchase Value",
-  formatCurrency(periodPurchaseValue)
-)}
 ${row("Net Cash Position", formatCurrency(collected-expenseTotal))}
 ${row("Receivable Cash", formatCurrency(due))}
 
