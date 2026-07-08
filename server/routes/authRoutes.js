@@ -7,6 +7,8 @@ const {
   login,
   getMe,
   updateMe,
+  sendRegisterOTP,
+  verifyRegisterOTP,
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/auth");
@@ -16,6 +18,31 @@ const {
 } = require("../middleware/errorHandler");
 
 const router = express.Router();
+router.post(
+    "/send-otp",
+    [
+        body("email")
+        .isEmail()
+        .withMessage("Valid email required")
+    ],
+    handleValidationErrors,
+    sendRegisterOTP
+);
+
+router.post(
+    "/verify-otp",
+    [
+        body("email")
+            .isEmail()
+            .withMessage("Valid email required"),
+
+        body("otp")
+            .isLength({ min: 6, max: 6 })
+            .withMessage("OTP must be 6 digits"),
+    ],
+    handleValidationErrors,
+    verifyRegisterOTP
+);
 
 // REGISTER
 

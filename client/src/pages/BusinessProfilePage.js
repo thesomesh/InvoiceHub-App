@@ -95,7 +95,7 @@ const [
       .resolvedOptions()
       .timeZone
 });
-      setSuccess("Business profile updated. New invoices will auto-fill your saved tax %.");
+      setSuccess("Business profile updated..");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update business profile");
     } finally {
@@ -145,13 +145,21 @@ const [
     className="input"
     placeholder="Enter business name"
     value={user?.businessName || ""}
-    onChange={(e) =>
-      updateProfile({ businessName: e.target.value })
-    }
+  
     disabled={loading}
   />
 </div>
         <div>
+          <label className="label">Email *</label>
+          <input
+            type="email"
+            className="input"
+            placeholder="abc@gmail.com"
+          value={user?.email|| ""}
+            disabled={loading}
+          />
+        </div>
+ <div>
           <label className="label">Mobile Number *</label>
           <input
             type="tel"
@@ -162,7 +170,6 @@ const [
             disabled={loading}
           />
         </div>
-
         <div>
           <label className="label">Address *</label>
           <textarea

@@ -22,7 +22,7 @@ import Footer from "./components/Footer";
 import LoginPage from "./pages/LoginPage";
 import AccountsPage from "./pages/AccountsPage";
 import RegisterPage from "./pages/RegisterPage";
-
+import StatementPage from "./pages/StatementPage";
 import DashboardPage from "./pages/DashboardPage";
 
 import CreateInvoicePage from "./pages/CreateInvoicePage";
@@ -122,7 +122,11 @@ const AppContent = () => {
     </ProtectedRoute>
   }
 />
-
+<Route
+   path="/accounts/statement/:id"
+   
+   element={  <ProtectedRoute> <StatementPage />  </ProtectedRoute>}
+/>
 <Route
   path="/reports"
   element={<ReportsPage />}

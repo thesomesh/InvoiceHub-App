@@ -1,5 +1,8 @@
 const User = require("../models/User");
-
+const crypto = require("crypto");
+const OTP = require("../models/OTP");
+const sendOTP = require("../utils/sendOTP");
+const sendWelcomeEmail = require("../utils/sendWelcomeEmail");
 const { generateToken } = require("../utils/generateToken");
 
 // CHECK DB
@@ -18,6 +21,106 @@ const ensureDbConnected = (res) => {
 };
 
 // REGISTER
+const sendRegisterOTP = async (req, res) => {
+
+    const { email } = req.body;
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existing = await User.findOne({
+        email: normalizedEmail
+    });
+
+    if(existing){
+        return res.status(400).json({
+            message:"Email already exists"
+        });
+    }
+
+   // Delete any previous OTP
+await OTP.deleteMany({
+    email: normalizedEmail,
+    purpose: "register",
+});
+
+// Generate OTP
+const otp = Math.floor(
+    100000 + Math.random() * 900000
+).toString();
+
+// Hash OTP
+const otpHash = crypto
+    .createHash("sha256")
+    .update(otp)
+    .digest("hex");
+
+// Save OTP
+await OTP.create({
+    email: normalizedEmail,
+    otpHash,
+    purpose: "register",
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+});
+
+    await sendOTP(normalizedEmail, otp);
+
+    res.json({
+        message:"OTP sent successfully"
+    });
+
+};
+
+const verifyRegisterOTP = async (req, res) => {
+
+    const { email, otp } = req.body;
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const savedOTP = await OTP.findOne({
+        email: normalizedEmail,
+        purpose: "register",
+    });
+
+    if (!savedOTP) {
+        return res.status(400).json({
+            message: "OTP expired or not found.",
+        });
+    }
+
+    const enteredHash = crypto
+        .createHash("sha256")
+        .update(otp)
+        .digest("hex");
+
+    if (savedOTP.otpHash !== enteredHash) {
+
+        savedOTP.attempts += 1;
+        await savedOTP.save();
+
+        if (savedOTP.attempts >= 5) {
+
+            await savedOTP.deleteOne();
+
+            return res.status(429).json({
+                message: "Too many invalid attempts.",
+            });
+        }
+
+        return res.status(400).json({
+            message: "Invalid OTP",
+        });
+    }
+
+    // Don't delete OTP here yet.
+    // Just tell frontend it is verified.
+
+    return res.json({
+        verified: true,
+        message: "OTP verified successfully",
+    });
+
+};
+
 
 const register = async (req, res, next) => {
   try {
@@ -27,6 +130,7 @@ const register = async (req, res, next) => {
       name,
       email,
       password,
+      otp,
       businessName,
       phone,
       address,
@@ -38,11 +142,48 @@ const register = async (req, res, next) => {
     const normalizedEmail = String(email)
       .trim()
       .toLowerCase();
+const savedOTP = await OTP.findOne({
+    email: normalizedEmail,
+    purpose: "register",
+});
 
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
+if (!savedOTP) {
+    return res.status(400).json({
+        message: "OTP expired or not found.",
     });
+}
 
+const enteredHash = crypto
+    .createHash("sha256")
+    .update(otp)
+    .digest("hex");
+
+if (savedOTP.otpHash !== enteredHash) {
+
+    savedOTP.attempts += 1;
+
+    await savedOTP.save();
+
+    if (savedOTP.attempts >= 5) {
+
+        await savedOTP.deleteOne();
+
+        return res.status(429).json({
+            message: "Too many invalid attempts. Please request a new OTP.",
+        });
+
+    }
+
+    return res.status(400).json({
+        message: "Invalid OTP",
+    });
+}
+const existingUser = await User.findOne({
+    email: normalizedEmail,
+});
+
+// OTP verified
+await savedOTP.deleteOne();
     if (existingUser) {
       return res.status(409).json({
         message:
@@ -56,7 +197,7 @@ const register = async (req, res, next) => {
       email: normalizedEmail,
 
       password,
-
+    emailVerified: true,
       businessName: String(
         businessName
       ).trim(),
@@ -78,7 +219,7 @@ const register = async (req, res, next) => {
         defaultNote || ""
       ).trim(),
     });
-
+await sendWelcomeEmail(user);
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -292,8 +433,11 @@ const updateMe = async (
 };
 
 module.exports = {
+    sendRegisterOTP,
+       verifyRegisterOTP,
   register,
   login,
   getMe,
   updateMe,
+
 };

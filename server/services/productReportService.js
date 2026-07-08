@@ -136,14 +136,15 @@ const generateInventoryHTML = (
 
    const discount = Number(
   product.discountPercentage || 0
-);
-      const margin =
-        cost > 0
-          ? (
-              ((sell - cost) / cost) *
-              100
-            ).toFixed(0)
-          : 0;
+);const margin =
+  Number(product.totalSales || 0) > 0
+    ? (
+        (
+          Number(product.totalSalesProfit || 0) /
+          Number(product.totalSales)
+        ) * 100
+      ).toFixed(1)
+    : "0.0";
 
       return `
 <tr class="${

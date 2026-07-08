@@ -170,9 +170,33 @@ const InvoicePreviewPage = () => {
                 Due: <span className="invoice-meta-strong">{formatDate(invoice.dueDate)}</span>
               </p>
             )}
-            <p className="invoice-meta-muted">
-              Created: <span className="invoice-meta-strong">{formatDate(invoice.createdAt || invoice.date)}</span>
-            </p>
+           <p className="invoice-meta-muted">
+  Created On:
+  <span className="invoice-meta-strong">
+    {new Date(invoice.createdAt).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })}
+  </span>
+</p>
+
+<p className="invoice-meta-muted">
+  Last Updated:
+  <span className="invoice-meta-strong">
+    {new Date(invoice.updatedAt).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })}
+  </span>
+</p>
           </article>
         </section>
 

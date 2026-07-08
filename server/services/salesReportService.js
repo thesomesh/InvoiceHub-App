@@ -434,6 +434,24 @@ const monthRevenue = invoices
     revenue: monthRevenue
   });
 }
+const invoiceProfitData = filteredInvoices.map(inv => {
+  const profit = (inv.items || []).reduce(
+    (sum, item) => sum + Number(item.finalProfit || 0),
+    0
+  );
+
+  const revenue = Number(inv.total || 0);
+
+  return {
+    invoice: inv.invoiceNumber,
+    customer: inv.customer?.name || "Walk-in Customer",
+    revenue,
+    profit,
+    margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+    date: inv.date,
+    status: inv.status
+  };
+});
 const pageBreak = `<div style="page-break-before: always;"></div>`;
   const html = `
 
@@ -758,6 +776,47 @@ const x = 90 + i*130;
 
 </svg>
 ` : ""}
+${pageBreak}
+
+<h2 class="section-title">
+INVOICE PROFIT ANALYSIS
+</h2>
+
+<table>
+
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Revenue</th>
+<th>Profit</th>
+<th>Margin %</th>
+</tr>
+
+${invoiceProfitData.map(inv => `
+<tr>
+<td>${inv.invoice}</td>
+<td>${inv.customer}</td>
+<td>${formatCurrency(inv.revenue)}</td>
+<td>${formatCurrency(inv.profit)}</td>
+<td>${inv.margin.toFixed(1)}%</td>
+</tr>
+`).join("")}
+
+<tr>
+<th>Total</th>
+<th>${invoiceProfitData.length} Invoices</th>
+<th>${formatCurrency(
+invoiceProfitData.reduce((s,i)=>s+i.revenue,0)
+)}</th>
+<th>${formatCurrency(
+invoiceProfitData.reduce((s,i)=>s+i.profit,0)
+)}</th>
+<th>
+-
+</th>
+</tr>
+
+</table>
 ${includeProductSales ? `
 
 ${pageBreak}

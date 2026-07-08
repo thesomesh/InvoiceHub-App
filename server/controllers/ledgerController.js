@@ -201,26 +201,9 @@ if (
 };
 
 
-const getStatement =
-async (req, res) => {
-
-  const data =
-    await Ledger.find({
-      accountId:
-        req.params.accountId,
-
-      createdBy:
-        req.user._id,
-    })
-      .sort({
-        date: 1,
-      });
-
-  res.json(data);
-};
 
 module.exports = {
   manualTransaction,
 transferFunds,
-  getStatement,
+
 };

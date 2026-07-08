@@ -213,7 +213,8 @@ const invoice = await Invoice.create({
 
   invoiceNumber:
     await generateInvoiceNumber(
-      req.user._id
+      req.user._id,
+     req.body.date
     ),
 
   customer,
@@ -781,7 +782,16 @@ const oldAmountPaid =
 if (
   status === "cancelled"
 ) {
-
+if (
+    invoice.status === "partial" &&
+    Number(invoice.amountPaid) > 0 &&
+    !refundAccountId
+) {
+    return res.status(400).json({
+        message:
+            "Partial invoice must be refunded before cancellation."
+    });
+}
 
 
   let distributedRoundOff = 0;
@@ -1071,6 +1081,7 @@ if (paid > 0 && accountId) {
       balanceAfter: account.currentBalance,
       sourceType: "invoice",
       sourceId: invoice._id,
+      note: invoice.customer?.name || "",
       createdBy: req.user._id,
     });
   }
@@ -1153,6 +1164,33 @@ if (status === "partial") {
 
   invoice.paymentMethod =
     paymentMethod;
+if (paid > 0 && accountId) {
+
+    const account = await Account.findOne({
+        _id: accountId,
+        createdBy: req.user._id,
+    });
+
+    if (account) {
+
+        account.currentBalance += paid;
+
+        await account.save();
+
+        await Ledger.create({
+            accountId: account._id,
+            particulars: `Invoice ${invoice.invoiceNumber}`,
+            credit: paid,
+            debit: 0,
+            balanceAfter: account.currentBalance,
+            sourceType: "invoice",
+            sourceId: invoice._id,
+                note: invoice.customer?.name || "",
+            createdBy: req.user._id,
+        });
+
+    }
+}
 
   await invoice.save();
 

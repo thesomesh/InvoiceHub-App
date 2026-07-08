@@ -76,7 +76,28 @@ const cashAccount =
       a.name ===
       "Cash"
   );
+const [
+  paymentMethod,
+  setPaymentMethod
+] = useState("Cash");
+  
+useEffect(() => {
 
+  if (
+    paymentMethod === "Cash" &&
+    cashAccount
+  ) {
+
+    setAccountId(
+      cashAccount._id
+    );
+
+  }
+
+}, [
+  paymentMethod,
+  cashAccount,
+]);
 useEffect(() => {
 
   if (
@@ -174,11 +195,7 @@ const [
   partialAmount,
   setPartialAmount
 ] = useState("");
-  const [
-  paymentMethod,
-  setPaymentMethod
-] = useState("Cash");
-
+  
 const [
   currentPage,
   setCurrentPage
@@ -410,7 +427,8 @@ if (
 
   if (
     invoice.status ===
-    "paid"
+    "paid"||
+    invoice.status === "partial"
   ) {
 
     setSelectedInvoice(
@@ -491,15 +509,27 @@ setRefundAmount(
       remaining
     );
 
-    setPaymentMethod(
-      invoice.paymentMethod &&
-        invoice.paymentMethod !==
-          "Not Paid Yet"
-        ? invoice.paymentMethod
-        : "Cash"
-    );
+  const method =
+  invoice.paymentMethod &&
+  invoice.paymentMethod !==
+    "Not Paid Yet"
+    ? invoice.paymentMethod
+    : "Cash";
 
-    setPaymentModal(true);
+setPaymentMethod(method);
+
+if (
+  method === "Cash" &&
+  cashAccount
+) {
+  setAccountId(
+    cashAccount._id
+  );
+} else {
+  setAccountId("");
+}
+
+setPaymentModal(true);
 
     return;
   }
@@ -526,13 +556,19 @@ setRefundAmount(
   // PARTIAL
   // ========================================
 
-  setPartialAmount("");
+// PARTIAL
 
-  setPaymentMethod(
-    "Cash"
-  );
+setPartialAmount("");
 
-  setPaymentModal(true);
+setPaymentMethod("Cash");
+
+if (cashAccount) {
+  setAccountId(cashAccount._id);
+} else {
+  setAccountId("");
+}
+
+setPaymentModal(true);
 };
   // ========================================
   // UPDATE PAYMENT
@@ -631,14 +667,15 @@ const summaryInvoices =
     const d = new Date(inv.date);
     const now = new Date();
 
-    if (
-      summaryPeriod === "today"
-    ) {
-      return (
-        d.toDateString() ===
-        now.toDateString()
-      );
-    }
+  if (summaryPeriod === "today") {
+  const match =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+
+
+  return match;
+}
 
     if (
       summaryPeriod ===
@@ -811,14 +848,17 @@ const totalRevenue =
       0
     );
 const summarySalesProfit =
-  summaryStats.revenue > 0 &&
-  totalRevenue > 0
-    ? (
-        (summaryStats.revenue /
-          totalRevenue) *
-        overallProfit 
+  activeSummaryInvoices.reduce((invoiceTotal, invoice) => {
+    return (
+      invoiceTotal +
+      (invoice.items || []).reduce(
+        (itemTotal, item) =>
+          itemTotal + Number(item.finalProfit || 0),
+        0
       )
-    : 0; 
+    );
+  }, 0);
+
 const overallProfitMargin =
   totalRevenue > 0
     ? (

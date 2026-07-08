@@ -7,7 +7,6 @@ express.Router();
 const {
   manualTransaction,
   transferFunds,
-  getStatement,
   getRecentTransactions,
 } = require(
   "../controllers/ledgerController"
@@ -31,11 +30,6 @@ router.post(
   transferFunds
 );
 
-router.get(
-  "/statement/:accountId",
-  protect,
-  getStatement
-);
 
 module.exports =
 router;

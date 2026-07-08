@@ -10,7 +10,8 @@ const accountRoutes =
 
 const ledgerRoutes =
   require("./routes/ledgerRoutes");
-  
+  const statementRoutes =
+require("./routes/statementRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const productRoutes =
   require("./routes/productRoutes");
@@ -27,6 +28,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 
@@ -54,7 +56,10 @@ app.use(
 app.use("/api/accounts", accountRoutes);
 app.use("/api/ledger", ledgerRoutes);
 
-
+app.use(
+"/api/statements",
+statementRoutes
+);
 
 
 

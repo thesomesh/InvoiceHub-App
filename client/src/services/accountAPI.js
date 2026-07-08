@@ -18,6 +18,24 @@ export const accountAPI = {
       `/ledger/statement/${accountId}`
     ),
 
+   getStatementPage(accountId, params = {}) {
+  return api.get(
+    `/statements/${accountId}`,
+    {
+      params,
+    }
+  );
+},downloadStatementPDF: (
+  accountId,
+  params
+) =>
+  api.get(
+    `/statements/${accountId}/pdf`,
+    {
+      params,
+      responseType: "blob",
+    }
+  ),
   manualTransaction: (
     data
   ) =>

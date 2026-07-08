@@ -7,7 +7,9 @@ import React, {
 import { Wallet } from "lucide-react";
 
 import { accountAPI } from "../services/accountAPI";
-
+import {
+  useNavigate,
+} from "react-router-dom";
 import {
   Modal,
   Alert,
@@ -23,6 +25,7 @@ const formatCurrency = (
   })}`;
 
 const AccountsPage = () => {
+  const navigate = useNavigate();
   const [accounts, setAccounts] =
     useState([]);
 
@@ -412,7 +415,7 @@ async (id) => {
 </div>
       </div>
 
-<div className="card p-6 mb-8">
+<div className="card p-6 mb-8 transition-all duration-300 hover:shadow-[0_20px_60px_rgba(79,70,229,0.15)]">
 
   <h2 className="text-xl font-bold mb-4">
     Quick Actions
@@ -420,7 +423,7 @@ async (id) => {
 
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-    <button className="btn-primary" 
+    <button className="btn-primary transition-all duration-300 hover:-translate-y-1 hover:scale-105 active:scale-95"
     onClick={() =>
       setCreateModal(true)
     }>
@@ -462,7 +465,7 @@ async (id) => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 
-        <div className="card p-4">
+       <div className="card p-4 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(79,70,229,0.20)] cursor-pointer">
           <p>Total Funds</p>
 
           <h2 className="text-2xl font-bold">
@@ -472,7 +475,7 @@ async (id) => {
           </h2>
         </div>
 
-        <div className="card p-4">
+      <div className="card p-4 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(79,70,229,0.20)] cursor-pointer">
           <p>Bank Balance</p>
 
           <h2 className="text-2xl font-bold">
@@ -481,8 +484,7 @@ async (id) => {
             )}
           </h2>
         </div>
-
-        <div className="card p-4">
+<div className="card p-4 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(79,70,229,0.20)] cursor-pointer">
           <p>Cash Balance</p>
 
           <h2 className="text-2xl font-bold">
@@ -492,7 +494,7 @@ async (id) => {
           </h2>
         </div>
 
-        <div className="card p-4">
+    <div className="card p-4 transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(79,70,229,0.20)] cursor-pointer">
           <p>Accounts</p>
 
           <h2 className="text-2xl font-bold">
@@ -557,16 +559,16 @@ async (id) => {
 
               <div className="flex flex-wrap gap-2 mt-5">
 
-                <button
-                  className="btn-primary"
-                  onClick={() =>
-                    openStatement(
-                      account
-                    )
-                  }
-                >
-                  Statement
-                </button>
+               <button
+className="btn-primary"
+onClick={()=>
+navigate(
+`/accounts/statement/${account._id}`
+)
+}
+>
+Statement
+</button>
 <button
  className="btn-danger"
  onClick={() =>
@@ -668,93 +670,7 @@ async (id) => {
 
       </Modal>
 
-      {/* STATEMENT */}
-
-      <Modal
-        open={statementModal}
-        onClose={() =>
-          setStatementModal(
-            false
-          )
-        }
-        title={
-          selectedAccount?.name
-        }
-      >
-
-        <div className="max-h-[500px] overflow-auto">
-
-          <table className="w-full text-sm">
-
-            <thead>
-
-              <tr>
-
-                <th>Date</th>
-
-                <th>Particulars</th>
-
-                <th>Cr</th>
-
-                <th>Dr</th>
-
-                <th>Balance</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {statement.map(
-                (tx) => (
-                  <tr
-                    key={
-                      tx._id
-                    }
-                  >
-
-                    <td>
-                      {new Date(
-                        tx.createdAt
-                      ).toLocaleDateString()}
-                    </td>
-
-                    <td>
-                      {
-                        tx.particulars
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        tx.credit
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        tx.debit
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        tx.balanceAfter
-                      }
-                    </td>
-
-                  </tr>
-                )
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </Modal>
+  
 <Modal
  open={depositModal}
  onClose={() =>

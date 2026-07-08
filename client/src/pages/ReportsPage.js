@@ -172,7 +172,7 @@ const downloadPurchaseReport = async () => {
 
       {/* SALES REPORT */}
 
-      <div className="card p-6 mb-8">
+  <div className="card p-6 mb-8 transition-all duration-300 hover:shadow-[0_20px_60px_rgba(79,70,229,0.15)]">
         <h2 className="text-xl font-bold mb-2">
           Sales Report
         </h2>
@@ -324,7 +324,7 @@ const downloadPurchaseReport = async () => {
 
       {/* PURCHASE REPORT */}
 
-      <div className="card p-6 mb-8">
+<div className="card p-6 mb-8 transition-all duration-300 hover:shadow-[0_20px_60px_rgba(79,70,229,0.15)]">
         <h2 className="text-xl font-bold mb-2">
           Purchase Report
         </h2>
@@ -496,7 +496,7 @@ const downloadPurchaseReport = async () => {
 
       {/* INVENTORY REPORT */}
 
-      <div className="card p-6 mb-8">
+     <div className="card p-6 mb-8 transition-all duration-300 hover:shadow-[0_20px_60px_rgba(79,70,229,0.15)]">
         <h2 className="text-xl font-bold mb-2">
           Inventory Report
         </h2>

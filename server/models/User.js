@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+emailVerified: {
+    type: Boolean,
+    default: false,
+},
 
     // BUSINESS INFO
 
