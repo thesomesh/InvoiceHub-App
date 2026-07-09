@@ -22,8 +22,10 @@ services:
       - "5219:5219"
     
     environment:
-      - PORT=5219
-      - MONGO_URI=mongodb://mongodb:27017/InvoiceHub
+      - PORT=${PORT}
+      - MONGO_URI=${MONGO_URI}
+      - EMAIL_USER= ${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
     depends_on:
       - mongodb
     networks:
