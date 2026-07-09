@@ -20,6 +20,8 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AccountsPage from "./pages/AccountsPage";
 import RegisterPage from "./pages/RegisterPage";
 import StatementPage from "./pages/StatementPage";
@@ -36,9 +38,16 @@ import ExpensePage from "./pages/ExpensePage";
 const AppContent = () => {
   const location = useLocation();
 
-  const isAuthPage =
-    location.pathname === "/login" ||
-    location.pathname === "/register";
+const authPages = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+];
+
+const isAuthPage = authPages.includes(
+  location.pathname
+);
 
   return (
       <div
@@ -86,7 +95,14 @@ const AppContent = () => {
                 <RegisterPage />
               }
             />
-
+<Route
+    path="/forgot-password"
+    element={<ForgotPasswordPage />}
+/>
+<Route
+  path="/reset-password"
+  element={<ResetPasswordPage />}
+/>
             <Route
               path="/dashboard"
               element={

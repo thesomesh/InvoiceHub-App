@@ -9,6 +9,9 @@ const {
   updateMe,
   sendRegisterOTP,
   verifyRegisterOTP,
+    forgotPassword,
+  verifyResetToken,
+  resetPassword,
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/auth");
@@ -116,7 +119,42 @@ router.post(
 
   login
 );
+// FORGOT PASSWORD
 
+router.post(
+  "/forgot-password",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Valid email is required")
+      .normalizeEmail(),
+  ],
+
+  handleValidationErrors,
+
+  forgotPassword
+);// VERIFY RESET TOKEN
+
+router.get(
+  "/reset-password",
+  verifyResetToken
+);// RESET PASSWORDzzz
+
+router.post(
+  "/reset-password",
+  [
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage(
+        "Password must be at least 8 characters"
+      ),
+  ],
+
+  handleValidationErrors,
+
+  resetPassword
+);
 // GET PROFILE
 
 router.get("/me", protect, getMe);

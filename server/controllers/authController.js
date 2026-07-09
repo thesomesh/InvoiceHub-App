@@ -4,7 +4,7 @@ const OTP = require("../models/OTP");
 const sendOTP = require("../utils/sendOTP");
 const sendWelcomeEmail = require("../utils/sendWelcomeEmail");
 const { generateToken } = require("../utils/generateToken");
-
+const sendResetPasswordEmail = require("../utils/sendResetPasswordEmail");
 // CHECK DB
 
 const ensureDbConnected = (res) => {
@@ -325,7 +325,146 @@ const login = async (req, res, next) => {
     next(err);
   }
 };
+const forgotPassword = async (req, res, next) => {
+  try {
+    if (!ensureDbConnected(res)) return;
 
+    const { email } = req.body;
+    const normalizedEmail = String(email)
+      .trim()
+      .toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    }).select("+passwordResetToken +passwordResetExpires");
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.status(200).json({
+        message:
+          "If an account exists for this email, we've sent a password reset link.",
+      });
+    }
+
+    // Generate Token
+    const resetToken = crypto
+      .randomBytes(32)
+      .toString("hex");
+
+    // Hash Token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.passwordResetToken = hashedToken;
+
+    user.passwordResetExpires =
+      Date.now() + 15 * 60 * 1000;
+
+    await user.save();
+const resetLink =
+  `${process.env.CLIENT_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    await sendResetPasswordEmail(
+      user.email,
+      resetLink
+    );
+
+    res.status(200).json({
+      message:
+        "If an account exists for this email, we've sent a password reset link.",
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};const verifyResetToken = async (req, res, next) => {
+  try {
+
+const { token } = req.query;
+
+if (!token) {
+  return res.status(400).json({
+    valid: false,
+    message: "Invalid reset link.",
+  });
+}
+
+const hashedToken = crypto
+  .createHash("sha256")
+  .update(token)
+  .digest("hex");
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: {
+        $gt: Date.now(),
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        valid: false,
+        message:
+          "Reset link is invalid or has expired.",
+      });
+    }
+
+    res.json({
+      valid: true,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};const resetPassword = async (req, res, next) => {
+  try {
+
+
+  const { token, password } = req.body;
+
+if (!token) {
+  return res.status(400).json({
+    message: "Invalid reset link.",
+  });
+}
+
+const hashedToken = crypto
+  .createHash("sha256")
+  .update(token)
+  .digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: {
+        $gt: Date.now(),
+      },
+    }).select("+password");
+
+    if (!user) {
+      return res.status(400).json({
+        message:
+          "Reset link is invalid or has expired.",
+      });
+    }
+
+    user.password = password;
+
+    user.passwordResetToken = undefined;
+
+    user.passwordResetExpires = undefined;
+
+    await user.save();
+
+    res.json({
+      message:
+        "Password updated successfully.",
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
 // GET ME
 
 const getMe = async (req, res, next) => {
@@ -437,6 +576,9 @@ module.exports = {
        verifyRegisterOTP,
   register,
   login,
+    forgotPassword,
+  verifyResetToken,
+  resetPassword,
   getMe,
   updateMe,
 

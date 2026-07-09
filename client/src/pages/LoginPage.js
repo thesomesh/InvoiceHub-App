@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Spinner } from "../components/UI";
-
+import { Eye, EyeOff } from "lucide-react";
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+const [showPassword, setShowPassword] = useState(false);
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     setError("");
@@ -99,20 +99,58 @@ Professional PDFs</strong>
               />
             </div>
 
-            <div>
-              <label className="label">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="input"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="current-password"
-                disabled={loading}
-              />
-            </div>
+           <div>
+  <label className="label">
+    Password
+  </label>
 
+  <div className="relative">
+
+    <input
+      type={
+        showPassword
+          ? "text"
+          : "password"
+      }
+      name="password"
+      className="input"
+      placeholder="Enter your password"
+      value={form.password}
+      onChange={handleChange}
+      autoComplete="current-password"
+      disabled={loading}
+    />
+
+    <button
+      type="button"
+      onClick={() =>
+        setShowPassword(
+          !showPassword
+        )
+      }
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+      tabIndex={-1}
+    >
+      {showPassword ? (
+        <EyeOff size={18} />
+      ) : (
+        <Eye size={18} />
+      )}
+    </button>
+
+  </div>
+</div>
+<div className="flex justify-between items-center mt-2 mb-3">
+  <div />
+
+  <Link
+    to="/forgot-password"
+    className="text-sm font-medium hover:underline"
+    style={{ color: "var(--accent)" }}
+  >
+    Forgot Password?
+  </Link>
+</div>
             <button
               type="submit"
               className="btn-primary auth-submit w-full mt-2"

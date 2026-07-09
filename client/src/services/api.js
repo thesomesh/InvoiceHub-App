@@ -138,7 +138,21 @@ export const authAPI = {
       "/auth/login",
       data
     ),
+forgotPassword: (email) =>
+  api.post("/auth/forgot-password", {
+    email,
+  }),
 
+verifyResetToken: (token) =>
+  api.get("/auth/reset-password", {
+    params: { token },
+  }),
+
+resetPassword: (token, password) =>
+  api.post("/auth/reset-password", {
+    token,
+    password,
+  }),
   getMe: () =>
     api.get("/auth/me"),
 

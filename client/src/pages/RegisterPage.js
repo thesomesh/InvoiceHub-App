@@ -1,4 +1,13 @@
-import React, { useState, useEffect ,useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+
+import {
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Alert, Spinner } from "../components/UI";
@@ -21,6 +30,9 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const [confirmPassword, setConfirmPassword] = useState("");
 const [otp, setOtp] = useState(["","","","","",""]);
 const otpRef = useRef(null);
 const otpRefs = useRef([]);
@@ -31,7 +43,56 @@ const [verifyingOTP, setVerifyingOTP] = useState(false);
 const [sendingOTP,setSendingOTP]=useState(false);
 
 const [timer, setTimer] = useState(0);
+const getPasswordStrength = () => {
 
+  if (!form.password)
+    return {
+      label: "",
+      color: "",
+    };
+
+  let score = 0;
+
+  if (form.password.length >= 8) score++;
+
+  if (/[A-Z]/.test(form.password)) score++;
+
+  if (/[a-z]/.test(form.password)) score++;
+
+  if (/\d/.test(form.password)) score++;
+
+  if (/[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`]/.test(form.password))
+    score++;
+
+  if (score <= 2)
+    return {
+      label: "Weak",
+      color: "var(--danger)",
+    };
+
+  if (score <= 4)
+    return {
+      label: "Medium",
+      color: "var(--warning)",
+    };
+
+  return {
+    label: "Strong",
+    color: "var(--success)",
+  };
+
+};
+
+const strength = getPasswordStrength();
+
+const passwordChecks = {
+  length: form.password.length >= 8,
+  uppercase: /[A-Z]/.test(form.password),
+  lowercase: /[a-z]/.test(form.password),
+  number: /\d/.test(form.password),
+  special:
+    /[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`]/.test(form.password),
+};
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
@@ -43,8 +104,34 @@ const [timer, setTimer] = useState(0);
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
     if (!form.email.trim()) newErrors.email = "Email is required";
-    if (!form.password || form.password.length < 8)
-      newErrors.password = "Password must be at least 8 characters";
+if (!form.password)
+  newErrors.password = "Password is required";
+
+else if (form.password.length < 8)
+  newErrors.password =
+    "Password must contain at least 8 characters.";
+
+else if (!/[A-Z]/.test(form.password))
+  newErrors.password =
+    "Password must contain at least one uppercase letter.";
+
+else if (!/[a-z]/.test(form.password))
+  newErrors.password =
+    "Password must contain at least one lowercase letter.";
+
+else if (!/\d/.test(form.password))
+  newErrors.password =
+    "Password must contain at least one number.";
+
+else if (
+  !/[!@#$%^&*(),.?":{}|<>_\-+=/\\[\]~`]/.test(form.password)
+)
+  newErrors.password =
+    "Password must contain at least one special character.";
+
+if (form.password !== confirmPassword)
+  newErrors.confirmPassword =
+    "Passwords do not match.";
     if (!form.businessName.trim()) newErrors.businessName = "Business name is required";
     if (!form.phone.trim()) newErrors.phone = "Phone is required";
     if (!form.address.trim()) newErrors.address = "Address is required";
@@ -490,7 +577,219 @@ style={{
 
 </div>
 )}
-            {field("password", "Password", "password", "Create a strong password")}
+      <div>
+
+<label className="label">
+Password *
+</label>
+
+<div className="relative">
+
+<input
+type={showPassword ? "text" : "password"}
+name="password"
+className={`input ${
+errors.password ? "border-[var(--danger)]" : ""
+}`}
+placeholder="Create a strong password"
+value={form.password}
+onChange={handleChange}
+autoComplete="new-password"
+disabled={loading}
+/>
+
+<button
+type="button"
+onClick={()=>
+setShowPassword(!showPassword)
+}
+className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+>
+
+{
+showPassword
+?
+<EyeOff size={18}/>
+:
+<Eye size={18}/>
+}
+
+</button>
+
+</div>
+
+{errors.password && (
+
+<p
+className="text-xs mt-1"
+style={{
+color:"var(--danger)"
+}}
+>
+{errors.password}
+</p>
+
+)}
+
+{form.password && (
+
+<div className="mt-3 space-y-2">
+
+<div
+className="text-sm font-medium"
+style={{
+color:strength.color
+}}
+>
+Password Strength:
+{" "}
+{strength.label}
+</div>
+
+<div className="text-xs space-y-1">
+
+<div
+style={{
+color:
+passwordChecks.length
+?
+"var(--success)"
+:
+"var(--text-muted)"
+}}
+>
+{passwordChecks.length ? "✓" : "○"} At least 8 characters
+</div>
+
+<div
+style={{
+color:
+passwordChecks.uppercase
+?
+"var(--success)"
+:
+"var(--text-muted)"
+}}
+>
+{passwordChecks.uppercase ? "✓" : "○"} One uppercase letter
+</div>
+
+<div
+style={{
+color:
+passwordChecks.lowercase
+?
+"var(--success)"
+:
+"var(--text-muted)"
+}}
+>
+{passwordChecks.lowercase ? "✓" : "○"} One lowercase letter
+</div>
+
+<div
+style={{
+color:
+passwordChecks.number
+?
+"var(--success)"
+:
+"var(--text-muted)"
+}}
+>
+{passwordChecks.number ? "✓" : "○"} One number
+</div>
+
+<div
+style={{
+color:
+passwordChecks.special
+?
+"var(--success)"
+:
+"var(--text-muted)"
+}}
+>
+{passwordChecks.special ? "✓" : "○"} One special character
+</div>
+
+</div>
+
+</div>
+
+)}
+
+</div>
+
+<div>
+
+<label className="label">
+Confirm Password *
+</label>
+
+<div className="relative">
+
+<input
+type={
+showConfirmPassword
+?
+"text"
+:
+"password"
+}
+className={`input ${
+errors.confirmPassword
+?
+"border-[var(--danger)]"
+:
+""
+}`}
+placeholder="Re-enter your password"
+value={confirmPassword}
+onChange={(e)=>
+setConfirmPassword(e.target.value)
+}
+autoComplete="new-password"
+onPaste={(e)=>e.preventDefault()}
+disabled={loading}
+/>
+
+<button
+type="button"
+onClick={()=>
+setShowConfirmPassword(
+!showConfirmPassword
+)
+}
+className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+>
+
+{
+showConfirmPassword
+?
+<EyeOff size={18}/>
+:
+<Eye size={18}/>
+}
+
+</button>
+
+</div>
+
+{errors.confirmPassword && (
+
+<p
+className="text-xs mt-1"
+style={{
+color:"var(--danger)"
+}}
+>
+{errors.confirmPassword}
+</p>
+
+)}
+
+</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {field("phone", "Phone", "tel", "Enter your phone number")}
