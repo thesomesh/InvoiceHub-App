@@ -196,6 +196,142 @@ const outOfStockRows = report.products
 </div>
 `)
 .join("");
+const inventoryAgingRows =
+report.products
+.map(product => {
+
+const today = new Date();
+
+const purchase =
+new Date(product.purchaseDate);
+
+const daysInStore =
+Math.floor(
+(today-purchase)/
+(1000*60*60*24)
+);
+
+const lastSale =
+product.lastSaleDate
+? new Date(product.lastSaleDate)
+: null;
+
+const daysSinceSale =
+lastSale
+? Math.floor(
+(today-lastSale)/
+(1000*60*60*24)
+)
+: daysInStore;
+const daysOutOfStock =
+product.stock === 0 && lastSale
+  ? Math.floor(
+      (today - lastSale) /
+      (1000 * 60 * 60 * 24)
+    )
+  : "-";
+let movement="";
+
+if(product.totalUnitsSold===0)
+movement="Never Sold";
+
+else if(daysSinceSale<=7)
+movement="Fast Moving";
+
+else if(daysSinceSale<=30)
+movement="Normal";
+
+else if(daysSinceSale<=60)
+movement="Slow Moving";
+
+else
+movement="Dead Stock";
+
+let status="Healthy";
+
+if(product.stock<=0)
+status="Out Of Stock";
+
+else if(
+product.stock<=product.minimumStock
+)
+status="Low Stock";
+
+return `
+<tr>
+
+<td>${product.name}</td>
+
+<td>${formatDate(product.purchaseDate)}</td>
+
+<td>${daysInStore}</td>
+
+<td>${product.stock}</td>
+
+<td>${product.totalUnitsSold}</td>
+
+<td>${product.totalPurchasedQty}</td>
+
+<td>${
+lastSale
+? formatDate(lastSale)
+: "Never Sold"
+}</td>
+
+<td>${daysSinceSale}</td>
+
+<td>${daysOutOfStock}</td>
+
+<td>${movement}</td>
+
+<td>${status}</td>
+
+</tr>
+`;
+
+})
+.join("");const agingSummary = {
+
+older30:
+report.products.filter(
+p =>
+(Date.now()-new Date(p.purchaseDate))
+/
+86400000 >30
+).length,
+
+older90:
+report.products.filter(
+p =>
+(Date.now()-new Date(p.purchaseDate))
+/
+86400000 >90
+).length,
+
+neverSold:
+report.products.filter(
+p=>p.totalUnitsSold===0
+).length,
+
+deadStock:
+report.products.filter(p => {
+
+  const days =
+    p.lastSaleDate
+      ? (
+          Date.now() -
+          new Date(p.lastSaleDate)
+        ) / 86400000
+      : (
+          Date.now() -
+          new Date(p.purchaseDate)
+        ) / 86400000;
+
+  return days > 60;
+
+}).length
+
+};
 const categoryRows = Object.entries(
   report.categoryDistribution || {}
 )
@@ -703,6 +839,69 @@ TOTAL
 <td>-</td>
 </tr>
 </tfoot>
+</table><div class="page-break"></div>
+
+<div class="section-title">
+INVENTORY AGING REPORT
+</div>
+
+<div class="summary-row">
+<span>Products Older Than 30 Days</span>
+<span>${agingSummary.older30}</span>
+</div>
+
+<div class="summary-row">
+<span>Products Older Than 90 Days</span>
+<span>${agingSummary.older90}</span>
+</div>
+
+<div class="summary-row">
+<span>Never Sold Products</span>
+<span>${agingSummary.neverSold}</span>
+</div>
+
+<div class="summary-row">
+<span>Dead Stock Products</span>
+<span>${agingSummary.deadStock}</span>
+</div>
+
+<table>
+<thead>
+
+<tr>
+
+<th>Product</th>
+
+<th>Purchase Date</th>
+
+<th>Days In Store</th>
+
+<th>Current Stock</th>
+
+<th>Units Sold</th>
+
+<th>Total Purchased</th>
+
+<th>Last Sale</th>
+
+<th>Days Since Sale</th>
+
+<th>Days Out Of Stock</th>
+
+<th>Movement</th>
+
+<th>Status</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${inventoryAgingRows}
+
+</tbody>
+
 </table>
 <div class="page-break"></div>
 <div class="section-title">

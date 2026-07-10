@@ -21,11 +21,8 @@ services:
     ports:
       - "5219:5219"
     
-    environment:
-      - PORT=${PORT}
-      - MONGO_URI=${MONGO_URI}
-      - EMAIL_USER= ${EMAIL_USER}
-      - EMAIL_PASS=${EMAIL_PASS}
+    env_file:
+      - ./server/.env
     depends_on:
       - mongodb
     networks:

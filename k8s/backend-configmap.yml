@@ -6,6 +6,6 @@ metadata:
   namespace: invoicehub-ns
 data:
   NODE_ENV : "production"
-  MONGO_URI : "mongodb://mongo:27017/InvoiceHub"
+  MONGO_URI : "mongodb://mongodb:27017/InvoiceHub"
   JWT_EXPIRES_IN: "7d"
   CLIENT_URL: "http://65.0.183.210:3000"

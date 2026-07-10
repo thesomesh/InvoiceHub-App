@@ -108,6 +108,9 @@ totalUnitsSold: {
 purchaseDate: {
   type: Date,
   default: Date.now,
+},lastSaleDate: {
+  type: Date,
+  default: null,
 },
    //LOW STOCK
     minimumStock: {

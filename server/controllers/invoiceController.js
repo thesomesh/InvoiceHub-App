@@ -441,9 +441,8 @@ product.totalSalesProfit =
       product.totalUnitsSold || 0
     ) + soldQty;
 
-  product.lastSoldAt =
-    new Date();
-
+product.lastSaleDate =
+  invoice.date || new Date();
 await product.save();
 }
 
@@ -950,6 +949,20 @@ if (
 }
 
 
+const latestInvoice =
+  await Invoice.findOne({
+    userId: req.user._id,
+    status: { $ne: "cancelled" },
+    "items.name": product.name,
+    _id: { $ne: invoice._id }
+  })
+  .sort({ date: -1 });
+
+product.lastSaleDate =
+  latestInvoice
+    ? latestInvoice.date
+    : null;
+
 await product.save();
   }
 if (invoice.amountPaid > 0) {
@@ -1316,12 +1329,13 @@ const products =
   });
 
 for (const product of products) {
-  product.totalSales = 0;
-  product.totalCollected = 0;
-  product.totalSalesProfit = 0;
-  product.totalUnitsSold = 0;
+product.totalSales = 0;
+product.totalCollected = 0;
+product.totalSalesProfit = 0;
+product.totalUnitsSold = 0;
+product.lastSaleDate = null;
 
-  await product.save();
+await product.save();
 }
 
 
@@ -1548,7 +1562,14 @@ item.totalCost = totalCost;
 product.totalUnitsSold =
   Number(product.totalUnitsSold || 0) +
   Number(qty || 0);
-
+if (
+  !product.lastSaleDate ||
+  new Date(invoice.date) >
+    new Date(product.lastSaleDate)
+) {
+  product.lastSaleDate =
+    invoice.date;
+}
 console.log(
   "SOLD UPDATE:",
   product.name,
