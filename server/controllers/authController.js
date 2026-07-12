@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Account = require("../models/Account");
 const crypto = require("crypto");
 const OTP = require("../models/OTP");
 const sendOTP = require("../utils/sendOTP");
@@ -218,7 +219,14 @@ await savedOTP.deleteOne();
       defaultNote: String(
         defaultNote || ""
       ).trim(),
-    });
+    });await Account.create({
+  name: "Cash",
+  type: "Cash",
+  openingBalance: 0,
+  currentBalance: 0,
+  createdBy: user._id,
+});
+
 await sendWelcomeEmail(user);
     const token = generateToken(user._id);
 

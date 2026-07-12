@@ -55,3 +55,16 @@ spec:
                 secretKeyRef:
                   name: backend-secret
                   key: JWT_SECRET
+
+            - name: EMAIL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: EMAIL_USER
+
+            
+            - name: EMAIL_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: EMAIL_PASS

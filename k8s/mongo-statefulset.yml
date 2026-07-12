@@ -4,7 +4,7 @@ metadata:
   name: mongo
   namespace: invoicehub-ns
 spec:
-  serviceName: mongo
+  serviceName: mongodb
   replicas: 1
 
   selector:
@@ -36,5 +36,5 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 1Gi
-        volumeName: mongo-pv
+            storage: 500Mi
+        volumeName: mongodb-pv

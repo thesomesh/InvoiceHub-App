@@ -8,4 +8,10 @@ data:
   NODE_ENV : "production"
   MONGO_URI : "mongodb://mongodb:27017/InvoiceHub"
   JWT_EXPIRES_IN: "7d"
-  CLIENT_URL: "http://65.0.183.210:3000"
+
+  # Frontend public URL according to environment:
+# Local:      http://localhost:3000
+# Kubernetes: http://<PUBLIC-IP>
+# Production: https://yourdomain.com
+# Must match the exact URL used by users to access the frontend (used for CORS)
+  CLIENT_URL: "http://localhost:3000" 

@@ -45,12 +45,13 @@ const [
 ] = useState("");
 const [accounts, setAccounts] = useState([]);
 const [accountId, setAccountId] = useState("");
-const cashAccount =
-  accounts.find(
-    a =>
-      a.name ===
-      "Cash"
-  );useEffect(() => {
+const cashAccount = accounts.find(
+  (a) => a.type === "Cash"
+);
+
+const bankAccount = accounts.find(
+  (a) => a.type === "Bank"
+);useEffect(() => {
 
   if (
     paymentMethod === "Cash" &&
@@ -246,6 +247,12 @@ items.forEach((item, i) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!bankAccount) {
+  setError(
+    "Please add a bank account before creating your invoice."
+  );
+  return;
+}
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -1263,6 +1270,12 @@ discountRate:
               </div>
               {loading ? "Creating Invoice..." : "Create Invoice"}
             </button>
+            {!bankAccount && (
+  <Alert
+    type="error"
+    message="A bank account is required before creating an invoice."
+  />
+)}
       </div>
     </div>
   </div>
