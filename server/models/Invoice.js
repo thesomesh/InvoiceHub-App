@@ -377,7 +377,29 @@ const invoiceSchema =
 
         default: 0,
       },
+// ========================================
+// ADDITIONAL CHARGES
+// ========================================
 
+additionalCharges: [
+  {
+    name: {
+      type: String,
+      trim: true,
+    },
+    amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+],
+
+additionalChargesTotal: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
       // ========================================
       // FINAL TOTAL
       // ========================================

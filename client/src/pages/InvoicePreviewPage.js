@@ -283,6 +283,20 @@ const InvoicePreviewPage = () => {
 
     </div>
   )}
+{invoice.additionalCharges?.map(
+  (charge, index) => (
+    <div
+      className="invoice-summary-row"
+      key={index}
+    >
+      <span>{charge.name}</span>
+
+      <strong>
+        +{formatCurrency(charge.amount)}
+      </strong>
+    </div>
+  )
+)}
 
   {Number(
   invoice.roundOff || 0

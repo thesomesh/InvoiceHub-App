@@ -28,6 +28,7 @@ const CreateInvoicePage = () => {
   const [customer, setCustomer] = useState({ name: "", phone: "", email: "", address: "" });
   const [items, setItems] = useState([emptyItem()]);
   const [taxRate, setTaxRate] = useState(0);
+  const [additionalCharges, setAdditionalCharges] = useState([]);
   const [discountRate, setDiscountRate] = useState(0);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
@@ -84,9 +85,15 @@ const bankAccount = accounts.find(
 // ========================================
 // ROUND OFF
 // ========================================
-const actualTotal =
-  totals.total;
 
+
+const actualTotal =
+  Number(totals.total || 0) +
+  additionalCharges.reduce(
+    (total, charge) =>
+      total + Number(charge.amount || 0),
+    0
+  );
 const roundedTotal =
   Math.round(
     actualTotal
@@ -203,7 +210,35 @@ const updateItem = (
     if (items.length === 1) return;
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
+const addCharge = () => {
+  setAdditionalCharges([
+    ...additionalCharges,
+    { name: "", amount: "" },
+  ]);
+};
 
+const updateCharge = (index, field, value) => {
+  setAdditionalCharges((prev) =>
+    prev.map((charge, i) =>
+      i === index
+        ? { ...charge, [field]: value }
+        : charge
+    )
+  );
+};
+
+const removeCharge = (index) => {
+  setAdditionalCharges((prev) =>
+    prev.filter((_, i) => i !== index)
+  );
+};
+
+const additionalChargesTotal =
+  additionalCharges.reduce(
+    (total, charge) =>
+      total + Number(charge.amount || 0),
+    0
+  );
   const validate = () => {
     const errors = {};
     if (!customer.name.trim()) errors["customer.name"] = "Customer name required";
@@ -292,7 +327,16 @@ items: items.map((i) => ({
     parseFloat(discountRate) || 0,
 roundOff,
   date,
-
+additionalCharges: additionalCharges
+  .filter(
+    (charge) =>
+      charge.name.trim() &&
+      Number(charge.amount) > 0
+  )
+  .map((charge) => ({
+    name: charge.name.trim(),
+    amount: Number(charge.amount),
+  })),
   dueDate:
     dueDate || undefined,
 
@@ -312,11 +356,9 @@ accountId:
   amountPaid:
      Number(amountPaid || 0),
 
-  dueAmount:
+dueAmount:
   Math.max(
-    Math.round(
-      totals.total
-    ) -
+    finalGrandTotal -
     Number(amountPaid || 0),
     0
   ),
@@ -881,7 +923,65 @@ discountRate:
           </span>
         </div>
       </div>
+<div>
+  <div className="flex items-center justify-between mb-3">
+    <label className="label">
+      Additional Charges
+    </label>
 
+    <button
+      type="button"
+      onClick={addCharge}
+      className="btn-ghost"
+    >
+      + Add Charge
+    </button>
+  </div>
+
+  {additionalCharges.map((charge, index) => (
+    <div
+      key={index}
+      className="grid grid-cols-[1fr_140px_40px] gap-3 mb-3"
+    >
+      <input
+        type="text"
+        className="input"
+        placeholder="Charge name"
+        value={charge.name}
+        onChange={(e) =>
+          updateCharge(
+            index,
+            "name",
+            e.target.value
+          )
+        }
+      />
+
+      <input
+        type="number"
+        className="input"
+        placeholder="Charge"
+        min="0"
+        value={charge.amount}
+        onChange={(e) =>
+          updateCharge(
+            index,
+            "amount",
+            e.target.value
+          )
+        }
+      />
+
+      <button
+        type="button"
+        onClick={() => removeCharge(index)}
+        className="text-red-500"
+      >
+        ×
+      </button>
+    </div>
+  ))}
+</div>
       {/* NOTES */}
 
       <div>
@@ -967,7 +1067,17 @@ discountRate:
               )}
             </span>
           </div>
-        )}
+        )}{additionalChargesTotal > 0 && (
+  <div className="flex items-center justify-between">
+    <span className="text-sm text-gray-500">
+      Additional Charges
+    </span>
+
+    <span className="font-semibold text-green-600">
+      +{formatCurrency(additionalChargesTotal)}
+    </span>
+  </div>
+)}
 {
   Number(amountPaid || 0) > 0 &&
   roundOff !== 0 && (
@@ -1004,7 +1114,7 @@ discountRate:
             <span className="text-3xl font-extrabold text-indigo-600 tracking-tight">
               {formatCurrency(
               Math.round(
-    totals.total
+   finalGrandTotal
   )
               )}
             </span>
@@ -1050,7 +1160,7 @@ discountRate:
   if (newStatus === "paid") {
     setAmountPaid(
       Math.round(
-        totals.total
+         finalGrandTotal
       )
     );
   }
@@ -1240,7 +1350,7 @@ discountRate:
                 : formatCurrency(
                     Math.max(
   Math.round(
-    totals.total
+     finalGrandTotal 
   ) -
   Number(amountPaid || 0),
   0

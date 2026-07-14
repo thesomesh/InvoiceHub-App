@@ -182,14 +182,14 @@ Support:
 </strong>
 
 <a
-href="mailto:support@invoicehub.com"
+href="mailto:support.invoicehub@gmail.com"
 style="
 color:#2563eb;
 text-decoration:none;
 font-weight:600;
 "
 >
-support@invoicehub.com
+support.invoicehub@gmail.com
 </a>
 </p>
 <hr

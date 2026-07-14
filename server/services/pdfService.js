@@ -775,7 +775,34 @@ ${
   `
     : ""
 }
+<!-- ADDITIONAL CHARGES -->
 
+${
+  Array.isArray(
+    invoice.additionalCharges
+  ) &&
+  invoice.additionalCharges.length > 0
+    ? invoice.additionalCharges
+        .map(
+          (charge) => `
+            <div class="summary-row">
+              <span>
+                ${charge.name}
+              </span>
+
+              <span>
+                +${formatCurrency(
+                  Number(
+                    charge.amount || 0
+                  )
+                )}
+              </span>
+            </div>
+          `
+        )
+        .join("")
+    : ""
+}
 ${
   Number(
     invoice.roundOff || 0

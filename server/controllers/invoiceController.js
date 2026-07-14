@@ -61,6 +61,7 @@ const createInvoice =
         taxRate = 0,
 
         discountRate = 0,
+          additionalCharges = [],
          roundOff = 0,
         notes,
 
@@ -99,7 +100,30 @@ const calculated =
     discountRate,
     roundOff,
   });
+const cleanAdditionalCharges =
+  Array.isArray(additionalCharges)
+    ? additionalCharges
+        .filter(
+          (charge) =>
+            String(charge.name || "").trim() &&
+            Number(charge.amount || 0) > 0
+        )
+        .map((charge) => ({
+          name: String(charge.name).trim(),
+          amount: Number(charge.amount),
+        }))
+    : [];
 
+const additionalChargesTotal =
+  cleanAdditionalCharges.reduce(
+    (total, charge) =>
+      total + charge.amount,
+    0
+  );
+
+const finalInvoiceTotal =
+  Number(calculated.total || 0) +
+  additionalChargesTotal;
       // ========================================
       // PAYMENT
       // ========================================
@@ -114,11 +138,9 @@ const calculated =
         Number(
           amountPaid || 0
         );
-
-      let finalDueAmount =
-        calculated.total -
-        finalAmountPaid;
-
+let finalDueAmount =
+  finalInvoiceTotal -
+  finalAmountPaid;
       // PENDING
 
       if (
@@ -127,8 +149,8 @@ const calculated =
       ) {
         finalAmountPaid = 0;
 
-        finalDueAmount =
-          calculated.total;
+       finalDueAmount =
+  finalInvoiceTotal;
 
         finalPaymentMethod =
           "Not Paid Yet";
@@ -161,10 +183,10 @@ const calculated =
             });
         }
 
-        if (
-          finalAmountPaid >=
-          calculated.total
-        ) {
+      if (
+  finalAmountPaid >=
+  finalInvoiceTotal
+) {
           return res
             .status(400)
             .json({
@@ -173,9 +195,9 @@ const calculated =
             });
         }
 
-        finalDueAmount =
-          calculated.total -
-          finalAmountPaid;
+     finalDueAmount =
+  finalInvoiceTotal -
+  finalAmountPaid;
       }
 
       // CANCELLED
@@ -237,7 +259,10 @@ const invoice = await Invoice.create({
   discountAmount:
     calculated.discountAmount,
 
-  total: calculated.total,
+ additionalCharges: cleanAdditionalCharges,
+additionalChargesTotal,
+
+total: finalInvoiceTotal,
 
   notes,
 

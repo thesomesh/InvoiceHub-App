@@ -162,7 +162,15 @@ const filteredInvoices = invoices.filter(i => {
   const revenue = filteredInvoices.reduce(
     (s, i) => s + Number(i.total || 0), 0
   );
-
+const additionalChargesRevenue =
+  filteredInvoices.reduce(
+    (sum, invoice) =>
+      sum +
+      Number(
+        invoice.additionalChargesTotal || 0
+      ),
+    0
+  );
   const collected = filteredInvoices.reduce(
     (s, i) => s + Number(i.amountPaid || 0), 0
   );
@@ -446,6 +454,9 @@ const invoiceProfitData = filteredInvoices.map(inv => {
     invoice: inv.invoiceNumber,
     customer: inv.customer?.name || "Walk-in Customer",
     revenue,
+    additionalCharges: Number(
+  inv.additionalChargesTotal || 0
+),
     profit,
     margin: revenue > 0 ? (profit / revenue) * 100 : 0,
     date: inv.date,
@@ -500,6 +511,7 @@ const pageBreak = `<div style="page-break-before: always;"></div>`;
 
 <h2 class="section-title">1.SUMMARY </h2>
 ${row("Revenue", formatCurrency(revenue))}
+${row("Additional Charges",formatCurrency(additionalChargesRevenue))}
 ${row("Collected", formatCurrency(collected))}
 ${row("Outstanding Due", formatCurrency(due))}
 ${row("Sales Profit", formatCurrency(salesProfit))}
@@ -688,6 +700,7 @@ ${weeklyData.map((week, i) =>
 ${pageBreak}
 <h2 class="section-title">9. SALES OVERVIEW</h2>
 ${row("Total Sales Revenue", formatCurrency(revenue))}
+${row("Additional Charges",formatCurrency(additionalChargesRevenue))}
 ${row("Paid Invoices", filteredInvoices.filter(i=>i.dueAmount===0).length)}
 ${row("Partial Payments", filteredInvoices.filter(i=>i.dueAmount>0 && i.amountPaid>0).length)}
 ${row("Pending Invoices", filteredInvoices.filter(i=>i.amountPaid===0).length)}
@@ -788,6 +801,7 @@ INVOICE PROFIT ANALYSIS
 <th>Invoice</th>
 <th>Customer</th>
 <th>Revenue</th>
+<th>Additional Charges</th>
 <th>Profit</th>
 <th>Margin %</th>
 </tr>
@@ -797,6 +811,7 @@ ${invoiceProfitData.map(inv => `
 <td>${inv.invoice}</td>
 <td>${inv.customer}</td>
 <td>${formatCurrency(inv.revenue)}</td>
+<td>${formatCurrency(inv.additionalCharges)}</td>
 <td>${formatCurrency(inv.profit)}</td>
 <td>${inv.margin.toFixed(1)}%</td>
 </tr>
@@ -806,10 +821,24 @@ ${invoiceProfitData.map(inv => `
 <th>Total</th>
 <th>${invoiceProfitData.length} Invoices</th>
 <th>${formatCurrency(
-invoiceProfitData.reduce((s,i)=>s+i.revenue,0)
+  invoiceProfitData.reduce(
+    (s, i) => s + i.revenue,
+    0
+  )
 )}</th>
+
 <th>${formatCurrency(
-invoiceProfitData.reduce((s,i)=>s+i.profit,0)
+  invoiceProfitData.reduce(
+    (s, i) => s + i.additionalCharges,
+    0
+  )
+)}</th>
+
+<th>${formatCurrency(
+  invoiceProfitData.reduce(
+    (s, i) => s + i.profit,
+    0
+  )
 )}</th>
 <th>
 -
