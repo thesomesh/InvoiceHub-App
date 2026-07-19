@@ -1716,7 +1716,7 @@ const downloadProductReportPDF = async (req, res) => {
     if (!products.length) {
       return res.status(404).json({
         success: false,
-        message: "No products found"
+        message: "No products found. Add at least one product before downloading the inventory report."
       });
     }
 

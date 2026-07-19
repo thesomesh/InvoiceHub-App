@@ -68,9 +68,22 @@ const downloadProductReport = async () => {
     window.URL.revokeObjectURL(url);
 
   } catch (error) {
-    console.error("Download Error:", error);
-    alert("Failed to download product report");
-  } finally {
+  console.error("Download Error:", error);
+
+  let message = "Failed to download product report";
+
+  if (error.response?.data) {
+    try {
+      const text = await error.response.data.text();
+      const data = JSON.parse(text);
+      message = data.message || message;
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+
+  alert(message);
+} finally {
    setDownloadingInventory(false);
   }
 };
